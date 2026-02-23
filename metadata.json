@@ -1,0 +1,7 @@
+{
+  "name": "GeoGuide Audio",
+  "description": "An interactive audio guide that triggers location-based stories as you explore.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}
