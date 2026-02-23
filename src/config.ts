@@ -34,7 +34,7 @@ export const DEFAULT_PINS: LocationPin[] = [
     lat: 1.3176661057893853,
     lng: 103.91228690401714,
     radius: 50,
-    audioUrl: audio2,
+    audioUrl: audio3,
     buttonLabel: 'Play Audio 2',
     description: 'Second historical point of interest.'
   },
