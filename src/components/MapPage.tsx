@@ -138,55 +138,49 @@ export default function MapPage() {
   const [audioError, setAudioError] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  useEffect(() => {
-    if (!userPos || !hasStarted) return;
+ useEffect(() => {
+  if (!userPos || !hasStarted) return;
 
-    // Find all pins where user is within their specific radius
-    const nearbyPins = pins
-      .map(pin => ({
-        pin,
-        distance: getDistance(userPos[0], userPos[1], pin.lat, pin.lng)
-      }))
-      .filter(item => item.distance <= item.pin.radius)
-      .sort((a, b) => a.distance - b.distance); // Sort by distance ascending
+  const nearbyPins = pins
+    .map((pin) => ({
+      pin,
+      distance: getDistance(userPos[0], userPos[1], pin.lat, pin.lng),
+    }))
+    .filter((item) => item.distance <= item.pin.radius)
+    .sort((a, b) => a.distance - b.distance);
 
-    // Pick the closest one
-    const closestPin = nearbyPins.length > 0 ? nearbyPins[0].pin : null;
+  const closestPin = nearbyPins.length > 0 ? nearbyPins[0].pin : null;
 
-    if (closestPin) {
-      if (activePin?.id !== closestPin.id) {
-        // Stop current audio if active pin changes
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current.currentTime = 0;
-        }
-        setProgress(0);
-        setAudioError(null);
-        setActivePin(closestPin);
-        
-        // Auto-play new audio
-        if (audioRef.current) {
-          audioRef.current.src = closestPin.audioUrl;
-          audioRef.current.play().then(() => {
-            setIsPlaying(true);
-          }).catch(err => {
-            console.warn("Auto-play blocked or failed:", err);
-            setIsPlaying(false);
-          });
-        }
-      }
-    } else {
-      if (activePin) {
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current.currentTime = 0;
-        }
-        setProgress(0);
-        setIsPlaying(false);
-        setActivePin(null);
-      }
+  // ✅ Only do something when we have a NEW closest pin (in-range)
+  if (closestPin && activePin?.id !== closestPin.id) {
+    // stop current audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
     }
-  }, [userPos, pins, activePin, hasStarted]);
+
+    setProgress(0);
+    setAudioError(null);
+
+    // switch UI pin (panel content)
+    setActivePin(closestPin);
+
+    // play new pin audio
+    if (audioRef.current) {
+      audioRef.current.src = closestPin.audioUrl;
+      audioRef.current
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch((err) => {
+          console.warn("Auto-play blocked or failed:", err);
+          setIsPlaying(false);
+        });
+    }
+  }
+
+  // ✅ IMPORTANT: if closestPin is null (user left geofence),
+  // do NOTHING -> audio keeps playing, activePin stays, panel stays.
+}, [userPos, pins, activePin, hasStarted]);
 
   const handleStart = () => {
     setHasStarted(true);
