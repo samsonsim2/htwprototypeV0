@@ -78,7 +78,7 @@ export default function ConfigurePage() {
           <div className="w-10" />
         </div>
         <p className="text-zinc-400 text-xs text-center">
-          Update the coordinates for your 5 audio guide locations.
+          Update the coordinates for your 17 audio guide locations.
         </p>
       </div>
 
