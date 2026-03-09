@@ -57,111 +57,20 @@ type RoutePathProps = {
 };
 
 function RoutePath({ pins }: RoutePathProps) {
-  const [routePoints, setRoutePoints] = useState<[number, number][]>([]);
-  const [fallbackPoints, setFallbackPoints] = useState<[number, number][]>([]);
+  if (pins.length < 2) return null;
 
-  useEffect(() => {
-    let isCancelled = false;
+  const positions = pins.map((pin) => [pin.lat, pin.lng] as [number, number]);
 
-    async function buildRoute() {
-      if (pins.length < 2) {
-        setRoutePoints([]);
-        setFallbackPoints([]);
-        return;
-      }
-
-      const fallback = pins.map((pin) => [pin.lat, pin.lng] as [number, number]);
-      setFallbackPoints(fallback);
-
-      try {
-        const allPoints: [number, number][] = [];
-
-        for (let i = 0; i < pins.length - 1; i++) {
-          const start = pins[i];
-          const end = pins[i + 1];
-
-          const coordinates = `${start.lng},${start.lat};${end.lng},${end.lat}`;
-          const url = `https://router.project-osrm.org/route/v1/foot/${coordinates}?overview=full&geometries=geojson`;
-
-          const res = await fetch(url);
-          if (!res.ok) {
-            throw new Error(`OSRM request failed for leg ${i + 1}`);
-          }
-
-          const data = await res.json();
-          const coords = data?.routes?.[0]?.geometry?.coordinates;
-
-          if (!coords || !Array.isArray(coords) || coords.length === 0) {
-            throw new Error(`No route geometry returned for leg ${i + 1}`);
-          }
-
-          const latLngs = coords.map(
-            ([lng, lat]: [number, number]) => [lat, lng] as [number, number]
-          );
-
-          if (i === 0) {
-            allPoints.push(...latLngs);
-          } else {
-            allPoints.push(...latLngs.slice(1));
-          }
-        }
-
-        if (!isCancelled) {
-          setRoutePoints(allPoints);
-        }
-      } catch (err) {
-        console.error('Failed to build routed walking path:', err);
-        if (!isCancelled) {
-          setRoutePoints([]);
-        }
-      }
-    }
-
-    buildRoute();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [pins]);
-
-  if (routePoints.length > 1) {
-    return (
-      <>
-        <Polyline
-          positions={routePoints}
-          pathOptions={{
-            color: '#ffffff',
-            weight: 8,
-            opacity: 0.9,
-          }}
-        />
-        <Polyline
-          positions={routePoints}
-          pathOptions={{
-            color: '#ef4444',
-            weight: 5,
-            opacity: 1,
-          }}
-        />
-      </>
-    );
-  }
-
-  if (fallbackPoints.length > 1) {
-    return (
-      <Polyline
-        positions={fallbackPoints}
-        pathOptions={{
-          color: '#ef4444',
-          weight: 4,
-          opacity: 0.7,
-          dashArray: '8, 10',
-        }}
-      />
-    );
-  }
-
-  return null;
+  return (
+    <Polyline
+      positions={positions}
+      pathOptions={{
+        color: '#ef4444',
+        weight: 5,
+        opacity: 1,
+      }}
+    />
+  );
 }
 
 function FitRouteBounds({ pins }: { pins: LocationPin[] }) {
