@@ -173,6 +173,7 @@ export default function MapPage() {
   const [hasStarted, setHasStarted] = useState(false);
   const [progress, setProgress] = useState(0);
   const [audioError, setAudioError] = useState<string | null>(null);
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fadingAudiosRef = useRef<HTMLAudioElement[]>([]);
   const fadeIntervalsRef = useRef<number[]>([]);
@@ -203,56 +204,83 @@ export default function MapPage() {
     fadeIntervalsRef.current.push(intervalId);
   };
 
-  useEffect(() => {
-    if (!userPos || !hasStarted) return;
-
+  const getClosestPinInRange = (pos: [number, number]) => {
     const nearbyPins = pins
       .map((pin) => ({
         pin,
-        distance: getDistance(userPos[0], userPos[1], pin.lat, pin.lng),
+        distance: getDistance(pos[0], pos[1], pin.lat, pin.lng),
       }))
       .filter((item) => item.distance <= item.pin.radius)
       .sort((a, b) => a.distance - b.distance);
 
-    const closestPin = nearbyPins.length > 0 ? nearbyPins[0].pin : null;
+    return nearbyPins.length > 0 ? nearbyPins[0].pin : null;
+  };
 
-    if (closestPin && activePin?.id !== closestPin.id) {
-      if (audioRef.current && !audioRef.current.paused && audioRef.current.src) {
-        const oldAudio = new Audio(audioRef.current.src);
-        oldAudio.currentTime = audioRef.current.currentTime;
-        oldAudio.volume = audioRef.current.volume || 1;
+  const playPinAudio = async (pin: LocationPin) => {
+    if (!audioRef.current) return;
 
-        oldAudio
-          .play()
-          .then(() => {
-            fadingAudiosRef.current.push(oldAudio);
-            fadeOutAndStopAudio(oldAudio, 10000);
-          })
-          .catch((err) => {
-            console.warn('Failed to create fading outgoing audio:', err);
-          });
+    setProgress(0);
+    setAudioError(null);
+    setActivePin(pin);
 
-        audioRef.current.pause();
-        audioRef.current.currentTime = 0;
-        audioRef.current.volume = 1;
-      }
+    audioRef.current.src = pin.audioUrl;
+    audioRef.current.volume = 1;
+    audioRef.current.currentTime = 0;
 
-      setProgress(0);
-      setAudioError(null);
-      setActivePin(closestPin);
-
-      if (audioRef.current) {
-        audioRef.current.src = closestPin.audioUrl;
-        audioRef.current.volume = 1;
-        audioRef.current
-          .play()
-          .then(() => setIsPlaying(true))
-          .catch((err) => {
-            console.warn('Auto-play blocked or failed:', err);
-            setIsPlaying(false);
-          });
-      }
+    try {
+      await audioRef.current.play();
+      setIsPlaying(true);
+    } catch (err) {
+      console.warn('Audio play failed:', err);
+      setIsPlaying(false);
+      setAudioError('Tap play to start audio.');
     }
+  };
+
+  useEffect(() => {
+    if (!userPos || !hasStarted || !audioRef.current) return;
+
+    const closestPin = getClosestPinInRange(userPos);
+
+    if (!closestPin) return;
+    if (activePin?.id === closestPin.id) return;
+
+    if (audioRef.current && !audioRef.current.paused && audioRef.current.src) {
+      const oldAudio = new Audio(audioRef.current.src);
+      oldAudio.currentTime = audioRef.current.currentTime;
+      oldAudio.volume = audioRef.current.volume || 1;
+
+      oldAudio
+        .play()
+        .then(() => {
+          fadingAudiosRef.current.push(oldAudio);
+          fadeOutAndStopAudio(oldAudio, 10000);
+        })
+        .catch((err) => {
+          console.warn('Failed to create fading outgoing audio:', err);
+        });
+
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current.volume = 1;
+    }
+
+    audioRef.current.src = closestPin.audioUrl;
+    audioRef.current.volume = 1;
+    audioRef.current.currentTime = 0;
+
+    setProgress(0);
+    setAudioError(null);
+    setActivePin(closestPin);
+
+    audioRef.current
+      .play()
+      .then(() => setIsPlaying(true))
+      .catch((err) => {
+        console.warn('Auto-play blocked or failed:', err);
+        setIsPlaying(false);
+        setAudioError('Tap play to start audio.');
+      });
   }, [userPos, pins, activePin, hasStarted]);
 
   useEffect(() => {
@@ -269,16 +297,15 @@ export default function MapPage() {
     };
   }, []);
 
-  const handleStart = () => {
+  const handleStart = async () => {
     setHasStarted(true);
-    if (audioRef.current) {
-      audioRef.current
-        .play()
-        .then(() => {
-          audioRef.current?.pause();
-        })
-        .catch(() => {});
-    }
+
+    if (!userPos) return;
+
+    const closestPin = getClosestPinInRange(userPos);
+    if (!closestPin) return;
+
+    await playPinAudio(closestPin);
   };
 
   const toggleAudio = () => {
@@ -293,20 +320,26 @@ export default function MapPage() {
         !audioRef.current.src.endsWith(activePin.audioUrl)
       ) {
         audioRef.current.src = activePin.audioUrl;
+        audioRef.current.currentTime = 0;
       }
 
       audioRef.current
         .play()
         .then(() => setIsPlaying(true))
-        .catch((err) => console.error('Play failed:', err));
+        .catch((err) => {
+          console.error('Play failed:', err);
+          setAudioError('Tap again to start audio.');
+        });
     }
   };
 
   const restartAudio = () => {
     if (!audioRef.current || !activePin) return;
     audioRef.current.currentTime = 0;
-    audioRef.current.play().catch((err) => console.error('Restart failed:', err));
-    setIsPlaying(true);
+    audioRef.current
+      .play()
+      .then(() => setIsPlaying(true))
+      .catch((err) => console.error('Restart failed:', err));
   };
 
   return (
