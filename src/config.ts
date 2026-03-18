@@ -35,7 +35,7 @@ export const DEFAULT_PINS: LocationPin[] = [
     name: "Ang Mo Kio Int",
     lat: 1.3698061175541025,
     lng: 103.84847350608551,
-    radius: 50,
+    radius: 40,
     audioUrl: audio1,
     buttonLabel: "Play Audio 1",
     description: "Stop 1",
