@@ -119,7 +119,7 @@ export const DEFAULT_PINS: LocationPin[] = [
     audioUrl: audio9,
     buttonLabel: "Play Audio 9",
     description: "Stop 9",
-  },
+  }, 
   {
     id: "pin-10",
     name: "Opp St. Theresa's Hme",

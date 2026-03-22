@@ -177,24 +177,31 @@ export default function MapPage() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fadingAudiosRef = useRef<HTMLAudioElement[]>([]);
   const fadeIntervalsRef = useRef<number[]>([]);
+  const isSwitchingRef = useRef(false);
+  const switchTimeoutRef = useRef<number | null>(null);
 
   const fadeOutAndStopAudio = (audioEl: HTMLAudioElement, duration = 10000) => {
-    const startVolume = audioEl.volume;
-    const steps = 20;
+    const startVolume = audioEl.volume || 1;
+    const steps = 100;
     const intervalMs = duration / steps;
     let step = 0;
 
     const intervalId = window.setInterval(() => {
       step += 1;
-      const nextVolume = Math.max(0, startVolume * (1 - step / steps));
-      audioEl.volume = nextVolume;
+      const progress = step / steps;
+      audioEl.volume = Math.max(0, startVolume * (1 - progress));
 
       if (step >= steps) {
         window.clearInterval(intervalId);
-        audioEl.pause();
-        audioEl.currentTime = 0;
-        audioEl.src = '';
-        audioEl.load();
+
+        try {
+          audioEl.pause();
+          audioEl.currentTime = 0;
+          audioEl.removeAttribute('src');
+          audioEl.load();
+        } catch (err) {
+          console.warn('Error while stopping faded audio:', err);
+        }
 
         fadingAudiosRef.current = fadingAudiosRef.current.filter((a) => a !== audioEl);
         fadeIntervalsRef.current = fadeIntervalsRef.current.filter((id) => id !== intervalId);
@@ -237,62 +244,143 @@ export default function MapPage() {
     }
   };
 
+  const switchToPinAudio = async (nextPin: LocationPin) => {
+    if (!audioRef.current || isSwitchingRef.current) return;
+
+    isSwitchingRef.current = true;
+    setAudioError(null);
+    setProgress(0);
+
+    const mainAudio = audioRef.current;
+
+    try {
+      const hasCurrentAudio = !!mainAudio.src && !mainAudio.paused;
+
+      if (hasCurrentAudio) {
+        const currentSrc = mainAudio.currentSrc || mainAudio.src;
+        const currentTime = mainAudio.currentTime || 0;
+        const currentVolume = mainAudio.volume || 1;
+
+        const outgoingAudio = new Audio();
+        outgoingAudio.src = currentSrc;
+        outgoingAudio.preload = 'auto';
+        outgoingAudio.volume = currentVolume;
+
+        const startFadeClone = async () => {
+          try {
+            const safeTime = Number.isFinite(currentTime) ? currentTime : 0;
+            outgoingAudio.currentTime = safeTime;
+
+            await outgoingAudio.play();
+
+            fadingAudiosRef.current.push(outgoingAudio);
+            fadeOutAndStopAudio(outgoingAudio, 4000);
+
+            mainAudio.pause();
+            mainAudio.currentTime = 0;
+            mainAudio.volume = 1;
+          } catch (err) {
+            console.warn('Outgoing fade audio failed to play:', err);
+
+            mainAudio.pause();
+            mainAudio.currentTime = 0;
+            mainAudio.volume = 1;
+          }
+        };
+
+        if (outgoingAudio.readyState >= 1) {
+          await startFadeClone();
+        } else {
+          await new Promise<void>((resolve) => {
+            const cleanupListeners = () => {
+              outgoingAudio.removeEventListener('loadedmetadata', onLoadedMetadata);
+              outgoingAudio.removeEventListener('error', onError);
+            };
+
+            const onLoadedMetadata = async () => {
+              cleanupListeners();
+              await startFadeClone();
+              resolve();
+            };
+
+            const onError = () => {
+              cleanupListeners();
+              console.warn('Outgoing audio metadata failed to load');
+
+              mainAudio.pause();
+              mainAudio.currentTime = 0;
+              mainAudio.volume = 1;
+              resolve();
+            };
+
+            outgoingAudio.addEventListener('loadedmetadata', onLoadedMetadata, { once: true });
+            outgoingAudio.addEventListener('error', onError, { once: true });
+          });
+        }
+      }
+
+      mainAudio.src = nextPin.audioUrl;
+      mainAudio.currentTime = 0;
+      mainAudio.volume = 1;
+
+      setActivePin(nextPin);
+
+      await mainAudio.play();
+      setIsPlaying(true);
+    } catch (err) {
+      console.warn('Failed to switch to new pin audio:', err);
+      setIsPlaying(false);
+      setAudioError('Tap play to start audio.');
+      setActivePin(nextPin);
+    } finally {
+      isSwitchingRef.current = false;
+    }
+  };
+
   useEffect(() => {
     if (!userPos || !hasStarted || !audioRef.current) return;
+    if (isSwitchingRef.current) return;
 
     const closestPin = getClosestPinInRange(userPos);
 
     if (!closestPin) return;
     if (activePin?.id === closestPin.id) return;
 
-    if (audioRef.current && !audioRef.current.paused && audioRef.current.src) {
-      const oldAudio = new Audio(audioRef.current.src);
-      oldAudio.currentTime = audioRef.current.currentTime;
-      oldAudio.volume = audioRef.current.volume || 1;
-
-      oldAudio
-        .play()
-        .then(() => {
-          fadingAudiosRef.current.push(oldAudio);
-          fadeOutAndStopAudio(oldAudio, 10000);
-        })
-        .catch((err) => {
-          console.warn('Failed to create fading outgoing audio:', err);
-        });
-
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      audioRef.current.volume = 1;
+    if (switchTimeoutRef.current) {
+      window.clearTimeout(switchTimeoutRef.current);
     }
 
-    audioRef.current.src = closestPin.audioUrl;
-    audioRef.current.volume = 1;
-    audioRef.current.currentTime = 0;
+    switchTimeoutRef.current = window.setTimeout(() => {
+      switchToPinAudio(closestPin);
+    }, 500);
 
-    setProgress(0);
-    setAudioError(null);
-    setActivePin(closestPin);
-
-    audioRef.current
-      .play()
-      .then(() => setIsPlaying(true))
-      .catch((err) => {
-        console.warn('Auto-play blocked or failed:', err);
-        setIsPlaying(false);
-        setAudioError('Tap play to start audio.');
-      });
-  }, [userPos, pins, activePin, hasStarted]);
+    return () => {
+      if (switchTimeoutRef.current) {
+        window.clearTimeout(switchTimeoutRef.current);
+      }
+    };
+  }, [userPos, hasStarted, activePin]);
 
   useEffect(() => {
     return () => {
+      if (switchTimeoutRef.current) {
+        window.clearTimeout(switchTimeoutRef.current);
+      }
+
       fadeIntervalsRef.current.forEach((id) => window.clearInterval(id));
       fadeIntervalsRef.current = [];
 
       fadingAudiosRef.current.forEach((audio) => {
-        audio.pause();
-        audio.currentTime = 0;
-        audio.src = '';
+        try {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.removeAttribute('src');
+          audio.load();
+        } catch (err) {
+          console.warn('Cleanup error:', err);
+        }
       });
+
       fadingAudiosRef.current = [];
     };
   }, []);
@@ -315,10 +403,10 @@ export default function MapPage() {
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
-      if (
-        audioRef.current.src !== window.location.origin + activePin.audioUrl &&
-        !audioRef.current.src.endsWith(activePin.audioUrl)
-      ) {
+      const currentSrc = audioRef.current.currentSrc || audioRef.current.src;
+      const expectedAbsoluteUrl = new URL(activePin.audioUrl, window.location.origin).href;
+
+      if (currentSrc !== expectedAbsoluteUrl && !currentSrc.endsWith(activePin.audioUrl)) {
         audioRef.current.src = activePin.audioUrl;
         audioRef.current.currentTime = 0;
       }
@@ -335,6 +423,7 @@ export default function MapPage() {
 
   const restartAudio = () => {
     if (!audioRef.current || !activePin) return;
+
     audioRef.current.currentTime = 0;
     audioRef.current
       .play()
