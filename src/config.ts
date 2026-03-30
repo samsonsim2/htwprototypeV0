@@ -6,14 +6,17 @@ import audio5 from "./assets/audio/05AngMoKioPrSch.mp3";
 import audio6 from "./assets/audio/06OppBlk244.mp3";
 import audio7 from "./assets/audio/07AftAngMoKioAve1.mp3";
 import audio8 from "./assets/audio/08AftWindsorPkRd.mp3";
+import audio8b from "./assets/audio/08bAftWindsorPkRd.mp3";
 import audio9 from "./assets/audio/09ShunfuEst.mp3";
 import audio10 from "./assets/audio/10OppStTheresasHme.mp3";
 import audio11 from "./assets/audio/11WalktoMacritchie1.mp3";
 import audio12 from "./assets/audio/12WalktoMacritchie2.mp3";
 import audio13 from "./assets/audio/13WalktoMacritchie3.mp3";
 import audio14 from "./assets/audio/14MtAlverniaHosp.mp3";
+import audio14b from "./assets/audio/14bMtAlverniaHosp.mp3";
 import audio15 from "./assets/audio/15OppSporePoloClub.mp3";
 import audio16 from "./assets/audio/16OppNovenaLodge.mp3";
+import audio16b from "./assets/audio/16bOppNovenaLodge.mp3";
 import audio17 from "./assets/audio/17ParishofChristCh.mp3";
 
 export interface LocationPin {
@@ -30,12 +33,12 @@ export interface LocationPin {
 export const STORAGE_KEY = "geoguide_pins";
 
 export const DEFAULT_PINS: LocationPin[] = [
-  {
+   {
     id: "pin-1",
     name: "Ang Mo Kio Int",
-    lat: 1.3698061175541025,
-    lng: 103.84847350608551,
-    radius: 40,
+    lat: 1.3695976,
+    lng: 103.8484336,
+    radius: 60,
     audioUrl: audio1,
     buttonLabel: "Play Audio 1",
     description: "Stop 1",
@@ -111,21 +114,31 @@ export const DEFAULT_PINS: LocationPin[] = [
     description: "Stop 8",
   },
   {
+    id: "pin-8b",
+    name: "Between 8 & 9",
+    lat: 1.3547091471514277,
+    lng: 103.83295984751881,
+    radius: 50,
+    audioUrl: audio8b,
+    buttonLabel: "Play Audio 8b",
+    description: "Transition Stop",
+  },
+  {
     id: "pin-9",
     name: "Shunfu Est",
-    lat: 1.3498494641059218,
-    lng: 103.83737461004887,
+    lat: 1.3493130,
+    lng: 103.8373344,
     radius: 50,
     audioUrl: audio9,
     buttonLabel: "Play Audio 9",
     description: "Stop 9",
-  }, 
+  },
   {
     id: "pin-10",
     name: "Opp St. Theresa's Hme",
-    lat: 1.346172442028104,
-    lng: 103.83878951004885,
-    radius: 50,
+    lat: 1.3466195,
+    lng: 103.8387347,
+    radius: 45,
     audioUrl: audio10,
     buttonLabel: "Play Audio 10",
     description: "Stop 10",
@@ -133,8 +146,8 @@ export const DEFAULT_PINS: LocationPin[] = [
   {
     id: "pin-11",
     name: "Walk to Macritchie 1",
-    lat: 1.346115820602865,
-    lng: 103.83831926864019,
+    lat: 1.3459472,
+    lng: 103.8388217,
     radius: 25,
     audioUrl: audio11,
     buttonLabel: "Play Audio 11",
@@ -171,6 +184,16 @@ export const DEFAULT_PINS: LocationPin[] = [
     description: "Stop 14",
   },
   {
+    id: "pin-14b",
+    name: "Between 14 & 15",
+    lat: 1.3370232780936842,
+    lng: 103.83746806717761,
+    radius: 50,
+    audioUrl: audio14b,
+    buttonLabel: "Play Audio 14b",
+    description: "Transition Stop",
+  },
+  {
     id: "pin-15",
     name: "Opp S'pore Polo Club",
     lat: 1.3318450399118509,
@@ -189,6 +212,16 @@ export const DEFAULT_PINS: LocationPin[] = [
     audioUrl: audio16,
     buttonLabel: "Play Audio 16",
     description: "Stop 16",
+  },
+  {
+    id: "pin-16b",
+    name: "Between 16 & 17",
+    lat: 1.3164912748918802,
+    lng: 103.84482170757835,
+    radius: 50,
+    audioUrl: audio16b,
+    buttonLabel: "Play Audio 16b",
+    description: "Transition Stop",
   },
   {
     id: "pin-17",
