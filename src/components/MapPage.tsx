@@ -6,39 +6,24 @@ import {
   Popup,
   useMap,
   Circle,
-  CircleMarker,
   Polyline,
 } from 'react-leaflet';
 import L from 'leaflet';
-import { MapPin, Navigation, Volume2, Play, Pause, Settings, RotateCcw, Layers } from 'lucide-react';
+import { Navigation, Play, Pause, Settings, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { getStoredPins, LocationPin } from '../config';
 import MagneticField from './MagneticField';
+import usePlaybackField from './usePlaybackField';
 import FieldDebugPanel, { DEFAULT_FIELD_SETTINGS } from './FieldDebugPanel';
 
-// Fix for default marker icons
-if (typeof L !== 'undefined' && L.Icon && L.Icon.Default) {
-  // @ts-ignore
-  delete L.Icon.Default.prototype._getIconUrl;
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl:
-      'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-  });
-}
-
-const pinIcon = new L.Icon({
-  iconUrl:
-    'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-grey.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
+const makeDotIcon = (colour: string, size = 10) => L.divIcon({
+  className: 'soft-location-marker',
+  html: `<span class="soft-location-dot" style="width:${size}px;height:${size}px;left:${(28 - size) / 2}px;top:${(28 - size) / 2}px;background:${colour};box-shadow:0 0 ${size * 0.4}px ${size * 0.2}px ${colour}99;filter:blur(${size * 0.08}px)"></span>`,
+  iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -8],
 });
-
+const pinIcon = makeDotIcon('#FFE67D', 5);
+const userIcon = makeDotIcon('#80C9FF');
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371e3;
   const φ1 = (lat1 * Math.PI) / 180;
@@ -61,15 +46,38 @@ type RoutePathProps = {
 function RoutePath({ pins }: RoutePathProps) {
   if (pins.length < 2) return null;
 
-  const positions = pins.map((pin) => [pin.lat, pin.lng] as [number, number]);
+  const points = pins.map(pin => L.latLng(pin.lat, pin.lng));
+  const positions: [number, number][] = [[points[0].lat, points[0].lng]];
+  // Short quadratic bends soften corners without rounding away the route.
+  for (let i = 1; i < points.length - 1; i++) {
+    const previous = points[i - 1], corner = points[i], next = points[i + 1];
+    const incoming = corner.distanceTo(previous), outgoing = corner.distanceTo(next);
+    if (incoming < 0.01 || outgoing < 0.01) {
+      positions.push([corner.lat, corner.lng]);
+      continue;
+    }
+    const trim = Math.min(80, incoming * 0.35, outgoing * 0.35);
+    const ax = corner.lat + (previous.lat - corner.lat) * trim / incoming;
+    const ay = corner.lng + (previous.lng - corner.lng) * trim / incoming;
+    const bx = corner.lat + (next.lat - corner.lat) * trim / outgoing;
+    const by = corner.lng + (next.lng - corner.lng) * trim / outgoing;
+    for (let step = 0; step <= 20; step++) {
+      const t = step / 20, u = 1 - t;
+      positions.push([u * u * ax + 2 * u * t * corner.lat + t * t * bx,
+        u * u * ay + 2 * u * t * corner.lng + t * t * by]);
+    }
+  }
+  positions.push([points[points.length - 1].lat, points[points.length - 1].lng]);
 
   return (
     <Polyline
       positions={positions}
       pathOptions={{
-        color: '#ef4444',
-        weight: 5,
+        color: '#000000',
+        weight: 0.75,
         opacity: 1,
+        lineCap: 'round',
+        lineJoin: 'round',
       }}
     />
   );
@@ -136,19 +144,9 @@ function LocationMarker({ setUserPos, visible }: { setUserPos: (pos: [number, nu
 
   return position === null ? null : (
     <>
-      {visible && <CircleMarker
-        center={position}
-        radius={8}
-        pathOptions={{
-          color: 'white',
-          fillColor: '#3b82f6',
-          fillOpacity: 1,
-          weight: 3,
-        }}
-      >
+      {visible && <Marker position={position} icon={userIcon} title="Your location">
         <Popup>You are here</Popup>
-      </CircleMarker>}
-
+      </Marker>}
       <div
         className="leaflet-bottom leaflet-left recenter-control"
         style={{ pointerEvents: 'auto' }}
@@ -176,12 +174,20 @@ export default function MapPage() {
   const [mapOpacity, setMapOpacity] = useState(0);
   const [showRoute, setShowRoute] = useState(true);
   const [showMarkers, setShowMarkers] = useState(true);
+  const [showGeofences, setShowGeofences] = useState(false);
   const [showLayerDebug, setShowLayerDebug] = useState(false);
   const [fieldSettings, setFieldSettings] = useState({ ...DEFAULT_FIELD_SETTINGS });
   const [progress, setProgress] = useState(0);
+  const [elapsed, setElapsed] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const formatTime = (seconds: number) => {
+    const safe = Number.isFinite(seconds) ? Math.max(0, Math.floor(seconds)) : 0;
+    return Math.floor(safe / 60) + ':' + String(safe % 60).padStart(2, '0');
+  };
   const [audioError, setAudioError] = useState<string | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const playbackField = usePlaybackField(audioRef);
   const fadingAudiosRef = useRef<HTMLAudioElement[]>([]);
   const fadeIntervalsRef = useRef<number[]>([]);
   const isSwitchingRef = useRef(false);
@@ -393,6 +399,7 @@ export default function MapPage() {
   }, []);
 
   const handleStart = async () => {
+    playbackField.prepare();
     setHasStarted(true);
 
     if (!userPos) return;
@@ -404,6 +411,7 @@ export default function MapPage() {
   };
 
   const toggleAudio = () => {
+    playbackField.prepare();
     if (!audioRef.current || !activePin) return;
 
     if (isPlaying) {
@@ -428,16 +436,6 @@ export default function MapPage() {
     }
   };
 
-  const restartAudio = () => {
-    if (!audioRef.current || !activePin) return;
-
-    audioRef.current.currentTime = 0;
-    audioRef.current
-      .play()
-      .then(() => setIsPlaying(true))
-      .catch((err) => console.error('Restart failed:', err));
-  };
-
   return (
     <div className="relative w-full h-full bg-zinc-950">
       <div className="map-header absolute top-0 left-0 right-0 z-[1000] pointer-events-none">
@@ -458,8 +456,11 @@ export default function MapPage() {
                 <input type="checkbox" checked={showRoute} onChange={e => setShowRoute(e.target.checked)} className="h-5 w-5 accent-emerald-500" />
               </label>
               <label className="flex min-h-10 cursor-pointer items-center justify-between gap-3 text-xs">
-                Location markers &amp; trigger circles
-                <input type="checkbox" checked={showMarkers} onChange={e => setShowMarkers(e.target.checked)} className="h-5 w-5 accent-emerald-500" />
+                Location markers
+                <input type="checkbox" checked={showMarkers} onChange={e => setShowMarkers(e.target.checked)} className="h-5 w-5 accent-emerald-500" />              </label>
+              <label className="flex min-h-10 cursor-pointer items-center justify-between gap-3 text-xs">
+                Geofence radius
+                <input type="checkbox" checked={showGeofences} onChange={e => setShowGeofences(e.target.checked)} className="h-5 w-5 accent-emerald-500" />
               </label>
             </div>
           )}
@@ -492,22 +493,23 @@ export default function MapPage() {
           />
 
           <FitRouteBounds pins={pins} />
-          <MagneticField pins={pins} enabled={hasStarted} userPos={userPos} settings={fieldSettings} />
+          <MagneticField pins={pins} enabled={hasStarted} userPos={userPos} settings={fieldSettings}
+            sampleAudio={playbackField.sample} />
           <LocationMarker setUserPos={setUserPos} visible={showMarkers} />
           {showRoute && <RoutePath pins={pins} />}
 
-          {showMarkers && pins.map((pin) => (
+          {pins.map((pin) => (
             <React.Fragment key={pin.id}>
-              <Marker position={[pin.lat, pin.lng]} icon={pinIcon}>
+              {showMarkers && <Marker position={[pin.lat, pin.lng]} icon={pinIcon} title={pin.name}>
                 <Popup>
                   <div className="p-1">
                     <h3 className="font-bold text-zinc-900">{pin.name}</h3>
                     <p className="text-xs text-zinc-600 mt-1">{pin.description}</p>
                   </div>
                 </Popup>
-              </Marker>
+              </Marker>}
 
-              <Circle
+              {showGeofences && <Circle
                 center={[pin.lat, pin.lng]}
                 radius={pin.radius}
                 pathOptions={{
@@ -515,87 +517,48 @@ export default function MapPage() {
                   fillColor: activePin?.id === pin.id ? '#10b981' : '#94a3b8',
                   fillOpacity: 0.1,
                 }}
-              />
+              />}
             </React.Fragment>
           ))}
         </MapContainer>
       </div>
 
+      {activePin && <div className="audio-bottom-wash" aria-hidden="true" />}
       <AnimatePresence>
         {activePin && (
-          <motion.div
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            className="audio-card absolute left-4 right-4 z-[1000] pointer-events-none"
-          >
-            <div className="bg-zinc-900/95 backdrop-blur-xl border border-white/10 rounded-3xl p-5 shadow-2xl pointer-events-auto">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <MapPin className="text-blue-400 w-5 h-5" />
+          <motion.div initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 16, opacity: 0 }}
+            className="audio-card absolute z-[1000] text-zinc-800">
+            <h2 className="mb-4 truncate font-mono text-sm font-normal tracking-wide" title={activePin.name}>{activePin.name}</h2>
+            <div className="flex items-start gap-2">
+              <button type="button" onClick={toggleAudio} aria-label={isPlaying ? 'Pause audio' : 'Play audio'}
+                className="-mt-5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full hover:bg-black/5 focus-visible:outline-2 focus-visible:outline-zinc-800">
+                {isPlaying ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current" />}
+              </button>
+              <div className="min-w-0 flex-1">
+                <div role="progressbar" aria-label="Track progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)}
+                  className="h-px w-full bg-zinc-400/50">
+                  <div className="h-full bg-zinc-800 transition-[width] duration-200 ease-linear" style={{ width: `${progress}%` }} />
                 </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="map-brand flex items-center gap-2">
-                    <span className="text-emerald-400 text-[9px] font-bold uppercase tracking-widest">
-                      Nearby Discovery
-                    </span>
-                  </div>
-                  <h2 className="text-white font-bold text-lg mt-0.5 truncate">{activePin.name}</h2>
-                  {audioError && (
-                    <p className="text-red-400 text-[10px] mt-1 font-medium">{audioError}</p>
-                  )}
+                <div className="mt-2 flex justify-between font-mono text-[11px] tabular-nums text-zinc-500">
+                  <span aria-label="Elapsed time">{formatTime(elapsed)}</span>
+                  <span aria-label="Remaining time">-{formatTime(duration - elapsed)}</span>
                 </div>
               </div>
-
-              <div className="mt-4 flex gap-2">
-                <button
-                  onClick={toggleAudio}
-                  className={`flex-1 flex items-center justify-center gap-3 py-3.5 rounded-2xl font-bold transition-all active:scale-95 ${
-                    isPlaying
-                      ? 'bg-zinc-800 text-white border border-white/10'
-                      : 'bg-emerald-500 text-zinc-950 shadow-lg'
-                  }`}
-                >
-                  {isPlaying ? (
-                    <Pause className="w-5 h-5 fill-current" />
-                  ) : (
-                    <Play className="w-5 h-5 fill-current" />
-                  )}
-                  <span>{isPlaying ? 'Pause Audio' : 'Play Audio'}</span>
-                </button>
-
-                <button
-                  onClick={restartAudio}
-                  className="w-14 flex items-center justify-center bg-zinc-800 text-white border border-white/10 rounded-2xl transition-all active:scale-95 hover:bg-zinc-700"
-                  title="Restart Audio"
-                >
-                  <RotateCcw className="w-5 h-5" />
-                </button>
-              </div>
-
-              {isPlaying && (
-                <div className="mt-4 flex items-center gap-3">
-                  <div className="flex-1 h-1 bg-zinc-800 rounded-full overflow-hidden">
-                    <div
-                      style={{ width: `${progress}%` }}
-                      className="h-full bg-emerald-500 transition-[width] duration-300 ease-linear"
-                    />
-                  </div>
-                  <Volume2 className="w-4 h-4 text-emerald-500 animate-pulse" />
-                </div>
-              )}
             </div>
+            {audioError && <p role="status" className="mt-1 text-xs text-red-700">{audioError}</p>}
           </motion.div>
         )}
       </AnimatePresence>
-
       <audio
         ref={audioRef}
         onEnded={() => setIsPlaying(false)}
+        onLoadStart={() => { setElapsed(0); setDuration(0); setProgress(0); }}
+        onLoadedMetadata={e => setDuration(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0)}
+        onDurationChange={e => setDuration(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0)}
         onTimeUpdate={(e) => {
           const audio = e.currentTarget;
-          if (audio.duration) {
+          setElapsed(audio.currentTime);
+          if (Number.isFinite(audio.duration) && audio.duration > 0) {
             setProgress((audio.currentTime / audio.duration) * 100);
           }
         }}

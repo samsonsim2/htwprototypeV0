@@ -40,6 +40,17 @@ body {
   width: 100%;
   height: 100%;
 }
+.soft-location-marker { background: transparent; border: none; }
+.soft-location-dot {
+  position: absolute;
+  left: 9px;
+  top: 9px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  filter: blur(0.8px);
+  pointer-events: none;
+}
 
 .map-header {
   padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 16px max(12px, env(safe-area-inset-left));
@@ -77,7 +88,19 @@ body {
   bottom: max(12px, env(safe-area-inset-bottom)) !important;
 }
 .recenter-control .leaflet-control { margin: 0 !important; }
-.audio-card { bottom: calc(max(12px, env(safe-area-inset-bottom)) + 64px); }
+.audio-card {
+  bottom: calc(max(12px, env(safe-area-inset-bottom)) + 64px);
+  left: max(20px, env(safe-area-inset-left));
+  right: max(20px, env(safe-area-inset-right));
+}
+.audio-bottom-wash {
+  position: absolute;
+  inset: auto 0 0;
+  height: min(280px, 55dvh);
+  background: linear-gradient(to top, rgba(255,255,255,0.98) 0%, rgba(255,255,255,0.9) 45%, transparent 100%);
+  z-index: 500;
+  pointer-events: none;
+}
 .leaflet-bottom.leaflet-right { bottom: env(safe-area-inset-bottom); right: env(safe-area-inset-right); }
 @media (max-width: 370px) {
   .map-brand > div:first-child, .map-brand p { display: none; }

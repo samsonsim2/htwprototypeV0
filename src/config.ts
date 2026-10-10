@@ -248,7 +248,7 @@ export const getStoredPins = (): LocationPin[] => {
             pin.audioUrl.includes("soundhelix.com") ||
             pin.audioUrl.includes("audio1.mp3") ||
             pin.audioUrl === "/01AmkInt.mp3",
-        ) || parsed.length !== 17;
+        );
 
       if (isOldVersion) {
         localStorage.removeItem(STORAGE_KEY);

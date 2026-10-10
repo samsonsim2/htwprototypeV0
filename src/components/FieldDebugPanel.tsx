@@ -27,7 +27,7 @@ function ColourControl({ label, value, onChange }: { label: string; value: strin
 }
 
 export const DEFAULT_FIELD_SETTINGS = {
-  density: 1.5, flowSpeed: 0.4, damping: 0.8, length: 7, strokeWidth: 0.4,
+  density: 1.5, flowSpeed: 0.64, damping: 0.8, length: 7, strokeWidth: 0.4,
   turbulence: 0.3, fieldStrength: 0.2, lifetime: 800, trailFade: 0.38,
   opacity: 0.35, color: '#4b4b4b', background: '#f2f2f2',
 };
@@ -35,7 +35,7 @@ export type FieldSettings = typeof DEFAULT_FIELD_SETTINGS;
 type NumericSetting = { [K in keyof FieldSettings]: FieldSettings[K] extends number ? K : never }[keyof FieldSettings];
 const controls: { key: NumericSetting; label: string; min: number; max: number; step: number }[] = [
   { key: 'density', label: 'Particle density', min: 0.1, max: 3, step: 0.1 },
-  { key: 'flowSpeed', label: 'Flow speed', min: 0.1, max: 3, step: 0.1 },
+  { key: 'flowSpeed', label: 'Flow speed', min: 0.1, max: 3, step: 0.01 },
   { key: 'damping', label: 'Damping', min: 0.8, max: 0.99, step: 0.01 },
   { key: 'length', label: 'Particle length', min: 1, max: 40, step: 1 },
   { key: 'strokeWidth', label: 'Stroke width', min: 0.1, max: 4, step: 0.1 },
