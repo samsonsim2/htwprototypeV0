@@ -6,7 +6,6 @@ import {
   Popup,
   useMap,
   Circle,
-  Polyline,
 } from 'react-leaflet';
 import L from 'leaflet';
 import { Navigation, Play, Pause, Settings, Layers } from 'lucide-react';
@@ -45,45 +44,68 @@ type RoutePathProps = {
 };
 
 function RoutePath({ pins }: RoutePathProps) {
-  if (pins.length < 2) return null;
+  const map = useMap();
+  useEffect(() => {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    svg.style.position = 'absolute';
+    svg.style.pointerEvents = 'none';
+    svg.style.overflow = 'hidden';
+    svg.setAttribute('aria-hidden', 'true');
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke', '#888888');
+    path.setAttribute('stroke-width', '0.5');
+    path.setAttribute('stroke-linecap', 'round');
+    path.setAttribute('stroke-linejoin', 'round');
+    path.setAttribute('vector-effect', 'non-scaling-stroke');
+    svg.appendChild(path);
+    map.getPanes().overlayPane.appendChild(svg);
 
-  const points = pins.map(pin => L.latLng(pin.lat, pin.lng));
-  const positions: [number, number][] = [[points[0].lat, points[0].lng]];
-  // Short quadratic bends soften corners without rounding away the route.
-  for (let i = 1; i < points.length - 1; i++) {
-    const previous = points[i - 1], corner = points[i], next = points[i + 1];
-    const incoming = corner.distanceTo(previous), outgoing = corner.distanceTo(next);
-    if (incoming < 0.01 || outgoing < 0.01) {
-      positions.push([corner.lat, corner.lng]);
-      continue;
-    }
-    const trim = Math.min(80, incoming * 0.35, outgoing * 0.35);
-    const ax = corner.lat + (previous.lat - corner.lat) * trim / incoming;
-    const ay = corner.lng + (previous.lng - corner.lng) * trim / incoming;
-    const bx = corner.lat + (next.lat - corner.lat) * trim / outgoing;
-    const by = corner.lng + (next.lng - corner.lng) * trim / outgoing;
-    for (let step = 0; step <= 20; step++) {
-      const t = step / 20, u = 1 - t;
-      positions.push([u * u * ax + 2 * u * t * corner.lat + t * t * bx,
-        u * u * ay + 2 * u * t * corner.lng + t * t * by]);
-    }
-  }
-  positions.push([points[points.length - 1].lat, points[points.length - 1].lng]);
+    const update = () => {
+      const size = map.getSize();
+      svg.setAttribute('width', String(size.x));
+      svg.setAttribute('height', String(size.y));
+      const topLeft = map.containerPointToLayerPoint([0, 0]);
+      svg.style.transform = `translate(${topLeft.x}px, ${topLeft.y}px)`;
 
-  return (
-    <Polyline
-      positions={positions}
-      pathOptions={{
-        color: '#000000',
-        weight: 0.75,
-        opacity: 1,
-        lineCap: 'round',
-        lineJoin: 'round',
-      }}
-    />
-  );
+      // Project without Leaflet's integer rounding to retain subpixel precision.
+      const origin = map.getPixelOrigin();
+      const offset = map.containerPointToLayerPoint([0, 0]);
+      const precise = pins.map(pin => map.project([pin.lat, pin.lng], map.getZoom()).subtract(origin).subtract(offset))
+        .filter((point, i, all) => i === 0 || point.distanceTo(all[i - 1]) > 0.001);
+      if (precise.length < 2) { path.setAttribute('d', ''); return; }
+      const handles = precise.map((point, i) => {
+        const before = precise[Math.max(0, i - 1)];
+        const after = precise[Math.min(precise.length - 1, i + 1)];
+        const direction = after.subtract(before);
+        const incoming = i ? point.distanceTo(before) : point.distanceTo(after);
+        const outgoing = i < precise.length - 1 ? point.distanceTo(after) : incoming;
+        return direction.multiplyBy(Math.min(incoming, outgoing) * 0.33 / (Math.hypot(direction.x, direction.y) || 1));
+      });
+      let d = `M ${precise[0].x} ${precise[0].y}`;
+      for (let i = 0; i < precise.length - 1; i++) {
+        const a = precise[i].add(handles[i]);
+        const end = precise[i + 1];
+        const b = end.subtract(handles[i + 1]);
+        d += ` C ${a.x} ${a.y}, ${b.x} ${b.y}, ${end.x} ${end.y}`;
+      }
+      path.setAttribute('d', d);
+    };
+    const hide = () => { svg.style.visibility = 'hidden'; };
+    const show = () => { update(); svg.style.visibility = ''; };
+    update();
+    map.on('move resize viewreset', update);
+    map.on('zoomstart', hide);
+    map.on('zoomend', show);
+    return () => {
+      map.off('move resize viewreset', update);
+      map.off('zoomstart', hide);
+      map.off('zoomend', show);
+      svg.remove();
+    };
+  }, [map, pins]);
+  return null;
 }
-
 function LocationMarker({ setUserPos, visible }: { setUserPos: (pos: [number, number]) => void; visible: boolean }) {
   const [position, setPosition] = useState<L.LatLng | null>(null);
   const map = useMap();
