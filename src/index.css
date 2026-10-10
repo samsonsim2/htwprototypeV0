@@ -10,6 +10,8 @@ html, body, #root {
   width: 100%;
   margin: 0;
   padding: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 #root {
@@ -27,7 +29,7 @@ body {
 .app-container {
   width: 100vw;
   height: 100vh;
-  max-width: 500px;
+  height: 100dvh;
   position: relative;
   overflow: hidden;
   background: #000;
@@ -37,6 +39,48 @@ body {
 .leaflet-container {
   width: 100%;
   height: 100%;
+}
+
+.map-header {
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 16px max(12px, env(safe-area-inset-left));
+}
+.map-header-row { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.map-brand { min-width: 0; }
+.map-brand > div:first-child { flex-shrink: 0; }
+.map-brand h1 { font-size: clamp(13px, 4vw, 16px); }
+.map-toolbar { display: flex; flex-shrink: 0; align-items: center; gap: 6px; pointer-events: auto; }
+.map-toolbar > a, .map-tool > button { width: 44px; height: 44px; }
+.map-toolbar > a, .map-tool > button {
+  color: #111;
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(0, 0, 0, 0.15);
+}
+.map-toolbar > a:hover, .map-tool > button:hover {
+  color: #000;
+  background: #fff;
+}
+.map-debug-popover {
+  position: absolute;
+  top: 100%;
+  right: max(12px, env(safe-area-inset-right));
+  width: 272px;
+  max-width: calc(100% - max(12px, env(safe-area-inset-left)) - max(12px, env(safe-area-inset-right)));
+  max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 100px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  pointer-events: auto;
+}
+.map-tool:focus-within { position: static; }
+.map-tool:focus-within .map-debug-popover { z-index: 2; }
+.recenter-control {
+  left: max(12px, env(safe-area-inset-left)) !important;
+  bottom: max(12px, env(safe-area-inset-bottom)) !important;
+}
+.recenter-control .leaflet-control { margin: 0 !important; }
+.audio-card { bottom: calc(max(12px, env(safe-area-inset-bottom)) + 64px); }
+.leaflet-bottom.leaflet-right { bottom: env(safe-area-inset-bottom); right: env(safe-area-inset-right); }
+@media (max-width: 370px) {
+  .map-brand > div:first-child, .map-brand p { display: none; }
 }
 
 /* Hide scrollbars for a cleaner mobile look */

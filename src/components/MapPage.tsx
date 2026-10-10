@@ -10,10 +10,12 @@ import {
   Polyline,
 } from 'react-leaflet';
 import L from 'leaflet';
-import { MapPin, Navigation, Volume2, Play, Pause, Settings, RotateCcw } from 'lucide-react';
+import { MapPin, Navigation, Volume2, Play, Pause, Settings, RotateCcw, Layers } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { getStoredPins, LocationPin } from '../config';
+import MagneticField from './MagneticField';
+import FieldDebugPanel, { DEFAULT_FIELD_SETTINGS } from './FieldDebugPanel';
 
 // Fix for default marker icons
 if (typeof L !== 'undefined' && L.Icon && L.Icon.Default) {
@@ -86,7 +88,7 @@ function FitRouteBounds({ pins }: { pins: LocationPin[] }) {
   return null;
 }
 
-function LocationMarker({ setUserPos }: { setUserPos: (pos: [number, number]) => void }) {
+function LocationMarker({ setUserPos, visible }: { setUserPos: (pos: [number, number]) => void; visible: boolean }) {
   const [position, setPosition] = useState<L.LatLng | null>(null);
   const map = useMap();
 
@@ -134,7 +136,7 @@ function LocationMarker({ setUserPos }: { setUserPos: (pos: [number, number]) =>
 
   return position === null ? null : (
     <>
-      <CircleMarker
+      {visible && <CircleMarker
         center={position}
         radius={8}
         pathOptions={{
@@ -145,10 +147,10 @@ function LocationMarker({ setUserPos }: { setUserPos: (pos: [number, number]) =>
         }}
       >
         <Popup>You are here</Popup>
-      </CircleMarker>
+      </CircleMarker>}
 
       <div
-        className="leaflet-bottom leaflet-right !mb-24 !mr-4"
+        className="leaflet-bottom leaflet-left recenter-control"
         style={{ pointerEvents: 'auto' }}
       >
         <div className="leaflet-control">
@@ -171,6 +173,11 @@ export default function MapPage() {
   const [activePin, setActivePin] = useState<LocationPin | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const [mapOpacity, setMapOpacity] = useState(0);
+  const [showRoute, setShowRoute] = useState(true);
+  const [showMarkers, setShowMarkers] = useState(true);
+  const [showLayerDebug, setShowLayerDebug] = useState(false);
+  const [fieldSettings, setFieldSettings] = useState({ ...DEFAULT_FIELD_SETTINGS });
   const [progress, setProgress] = useState(0);
   const [audioError, setAudioError] = useState<string | null>(null);
 
@@ -433,26 +440,41 @@ export default function MapPage() {
 
   return (
     <div className="relative w-full h-full bg-zinc-950">
-      <div className="absolute top-0 left-0 right-0 z-[1000] p-4 bg-gradient-to-b from-black/90 to-transparent pointer-events-none">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg">
-              <Navigation className="text-white w-5 h-5" />
+      <div className="map-header absolute top-0 left-0 right-0 z-[1000] pointer-events-none">
+        <div className="map-header-row">
+          <div className="map-toolbar">      {hasStarted && (
+        <aside className="map-tool text-white">
+          <button type="button" title="Map overlays" aria-label="Map overlay debug settings"
+            aria-expanded={showLayerDebug} aria-controls="map-overlay-debug"
+            onClick={() => setShowLayerDebug(!showLayerDebug)}
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/10 text-white/80 backdrop-blur-md hover:text-white">
+            <Layers className="h-5 w-5" />
+          </button>
+          {showLayerDebug && (
+            <div id="map-overlay-debug" className="map-debug-popover space-y-3 rounded-xl border border-white/10 bg-zinc-950/95 p-3 shadow-lg backdrop-blur-md">
+              <p className="text-sm font-medium">Debug · Map overlays</p>
+              <label className="flex min-h-10 cursor-pointer items-center justify-between gap-3 text-xs">
+                Route line
+                <input type="checkbox" checked={showRoute} onChange={e => setShowRoute(e.target.checked)} className="h-5 w-5 accent-emerald-500" />
+              </label>
+              <label className="flex min-h-10 cursor-pointer items-center justify-between gap-3 text-xs">
+                Location markers &amp; trigger circles
+                <input type="checkbox" checked={showMarkers} onChange={e => setShowMarkers(e.target.checked)} className="h-5 w-5 accent-emerald-500" />
+              </label>
             </div>
-            <div>
-              <h1 className="text-white font-bold text-base leading-tight">GeoGuide</h1>
-              <p className="text-emerald-400 text-[10px] font-medium uppercase tracking-wider">
-                Audio Explorer
-              </p>
-            </div>
-          </div>
-
+          )}
+        </aside>
+      )}
+      {hasStarted && (
+        <FieldDebugPanel settings={fieldSettings} onChange={setFieldSettings}
+          mapOpacity={mapOpacity} onMapOpacity={setMapOpacity} />
+      )}
           <Link
             to="/configurelocation"
             className="pointer-events-auto w-9 h-9 bg-white/10 backdrop-blur-md border border-white/10 rounded-xl flex items-center justify-center text-white/80 hover:text-white transition-colors"
           >
             <Settings className="w-5 h-5" />
-          </Link>
+          </Link></div>
         </div>
       </div>
 
@@ -460,19 +482,21 @@ export default function MapPage() {
         <MapContainer
           center={[1.370050598938354, 103.84907773928799]}
           zoom={15}
-          style={{ height: '100%', width: '100%' }}
+          style={{ height: '100%', width: '100%', background: fieldSettings.background }}
           zoomControl={false}
         >
           <TileLayer
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            opacity={mapOpacity}
+            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
 
           <FitRouteBounds pins={pins} />
-          <LocationMarker setUserPos={setUserPos} />
-          <RoutePath pins={pins} />
+          <MagneticField pins={pins} enabled={hasStarted} userPos={userPos} settings={fieldSettings} />
+          <LocationMarker setUserPos={setUserPos} visible={showMarkers} />
+          {showRoute && <RoutePath pins={pins} />}
 
-          {pins.map((pin) => (
+          {showMarkers && pins.map((pin) => (
             <React.Fragment key={pin.id}>
               <Marker position={[pin.lat, pin.lng]} icon={pinIcon}>
                 <Popup>
@@ -503,7 +527,7 @@ export default function MapPage() {
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 100, opacity: 0 }}
-            className="absolute bottom-6 left-4 right-4 z-[1000] pointer-events-none"
+            className="audio-card absolute left-4 right-4 z-[1000] pointer-events-none"
           >
             <div className="bg-zinc-900/95 backdrop-blur-xl border border-white/10 rounded-3xl p-5 shadow-2xl pointer-events-auto">
               <div className="flex items-start gap-4">
@@ -512,7 +536,7 @@ export default function MapPage() {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
+                  <div className="map-brand flex items-center gap-2">
                     <span className="text-emerald-400 text-[9px] font-bold uppercase tracking-widest">
                       Nearby Discovery
                     </span>
