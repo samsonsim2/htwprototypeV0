@@ -84,20 +84,6 @@ function RoutePath({ pins }: RoutePathProps) {
   );
 }
 
-function FitRouteBounds({ pins }: { pins: LocationPin[] }) {
-  const map = useMap();
-
-  useEffect(() => {
-    if (!pins.length) return;
-
-    const bounds = L.latLngBounds(pins.map((pin) => [pin.lat, pin.lng] as [number, number]));
-    map.fitBounds(bounds, { padding: [40, 40] });
-    map.setZoom(map.getZoom() + DEFAULT_ZOOM_BOOST, { animate: false });
-  }, [map, pins]);
-
-  return null;
-}
-
 function LocationMarker({ setUserPos, visible }: { setUserPos: (pos: [number, number]) => void; visible: boolean }) {
   const [position, setPosition] = useState<L.LatLng | null>(null);
   const map = useMap();
@@ -109,41 +95,38 @@ function LocationMarker({ setUserPos, visible }: { setUserPos: (pos: [number, nu
   };
 
   useEffect(() => {
-    map.locate({ setView: true, maxZoom: 17 + DEFAULT_ZOOM_BOOST });
-
-    const onLocationFound = (e: L.LocationEvent) => {
-      setPosition(e.latlng);
-      setUserPos([e.latlng.lat, e.latlng.lng]);
-    };
-
-    const onLocationError = (e: L.ErrorEvent) => {
-      console.error('Location error:', e.message);
-      const defaultPos = L.latLng(1.370050598938354, 103.84907773928799);
-      setPosition(defaultPos);
-      setUserPos([defaultPos.lat, defaultPos.lng]);
-      map.setView(defaultPos, 15 + DEFAULT_ZOOM_BOOST);
-    };
-
-    map.on('locationfound', onLocationFound);
-    map.on('locationerror', onLocationError);
-
+    let disposed = false;
+    let hasLocated = false;
     const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        const newPos = L.latLng(pos.coords.latitude, pos.coords.longitude);
-        setPosition(newPos);
-        setUserPos([pos.coords.latitude, pos.coords.longitude]);
+      (result) => {
+        if (disposed) return;
+        const next = L.latLng(result.coords.latitude, result.coords.longitude);
+        setPosition(next);
+        setUserPos([next.lat, next.lng]);
+        // Use a fixed close-up zoom, independent of GPS accuracy bounds.
+        // Subsequent fixes keep the user centered while preserving their zoom.
+        if (!hasLocated) {
+          hasLocated = true;
+          map.setView(next, 17 + DEFAULT_ZOOM_BOOST, { animate: false });
+        } else {
+          map.panTo(next, { animate: true, duration: 0.5 });
+        }
       },
-      (err) => console.error(err),
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+      (error) => {
+        if (disposed) return;
+        console.error('Location error:', error.message);
+        if (hasLocated) return;
+        const fallback = L.latLng(1.370050598938354, 103.84907773928799);
+        setPosition(fallback);
+        setUserPos([fallback.lat, fallback.lng]);
+      },
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
     );
-
     return () => {
-      map.off('locationfound', onLocationFound);
-      map.off('locationerror', onLocationError);
+      disposed = true;
       navigator.geolocation.clearWatch(watchId);
     };
   }, [map, setUserPos]);
-
   return position === null ? null : (
     <>
       {visible && <Marker position={position} icon={userIcon} title="Your location">
@@ -495,7 +478,7 @@ export default function MapPage() {
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
 
-          <FitRouteBounds pins={pins} />
+
           <MagneticField pins={pins} enabled={hasStarted} userPos={userPos} settings={fieldSettings}
             sampleAudio={playbackField.sample} />
           <LocationMarker setUserPos={setUserPos} visible={showMarkers} />
