@@ -24,6 +24,7 @@ const makeDotIcon = (colour: string, size = 10) => L.divIcon({
 });
 const pinIcon = makeDotIcon('#FFE67D', 5);
 const userIcon = makeDotIcon('#80C9FF');
+const DEFAULT_ZOOM_BOOST = Math.log2(1.2);
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 6371e3;
   const φ1 = (lat1 * Math.PI) / 180;
@@ -91,6 +92,7 @@ function FitRouteBounds({ pins }: { pins: LocationPin[] }) {
 
     const bounds = L.latLngBounds(pins.map((pin) => [pin.lat, pin.lng] as [number, number]));
     map.fitBounds(bounds, { padding: [40, 40] });
+    map.setZoom(map.getZoom() + DEFAULT_ZOOM_BOOST, { animate: false });
   }, [map, pins]);
 
   return null;
@@ -102,12 +104,12 @@ function LocationMarker({ setUserPos, visible }: { setUserPos: (pos: [number, nu
 
   const handleRecenter = () => {
     if (position) {
-      map.setView(position, 17);
+      map.setView(position, 17 + DEFAULT_ZOOM_BOOST);
     }
   };
 
   useEffect(() => {
-    map.locate({ setView: true, maxZoom: 17 });
+    map.locate({ setView: true, maxZoom: 17 + DEFAULT_ZOOM_BOOST });
 
     const onLocationFound = (e: L.LocationEvent) => {
       setPosition(e.latlng);
@@ -119,7 +121,7 @@ function LocationMarker({ setUserPos, visible }: { setUserPos: (pos: [number, nu
       const defaultPos = L.latLng(1.370050598938354, 103.84907773928799);
       setPosition(defaultPos);
       setUserPos([defaultPos.lat, defaultPos.lng]);
-      map.setView(defaultPos, 15);
+      map.setView(defaultPos, 15 + DEFAULT_ZOOM_BOOST);
     };
 
     map.on('locationfound', onLocationFound);
@@ -482,7 +484,8 @@ export default function MapPage() {
       <div className="absolute inset-0 z-0">
         <MapContainer
           center={[1.370050598938354, 103.84907773928799]}
-          zoom={15}
+          zoom={15 + DEFAULT_ZOOM_BOOST}
+          zoomSnap={0}
           style={{ height: '100%', width: '100%', background: fieldSettings.background }}
           zoomControl={false}
         >
