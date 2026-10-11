@@ -41,6 +41,21 @@ body {
   height: 100%;
 }
 .soft-location-marker { background: transparent; border: none; }
+.route-path {
+  stroke-dasharray: 6 4;
+  animation: route-dash-flow 1s linear infinite;
+}
+
+@keyframes route-dash-flow {
+  from { stroke-dashoffset: 0; }
+  /* Move one full dash-and-gap period for a seamless loop. */
+  to { stroke-dashoffset: -10; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-path { animation: none; }
+}
+
 .soft-location-dot {
   position: absolute;
   left: 9px;

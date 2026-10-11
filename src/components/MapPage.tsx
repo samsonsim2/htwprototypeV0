@@ -21,7 +21,7 @@ const makeDotIcon = (colour: string, size = 10) => L.divIcon({
   html: `<span class="soft-location-dot" style="width:${size}px;height:${size}px;left:${(28 - size) / 2}px;top:${(28 - size) / 2}px;background:${colour};box-shadow:0 0 ${size * 0.4}px ${size * 0.2}px ${colour}99;filter:blur(${size * 0.08}px)"></span>`,
   iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -8],
 });
-const pinIcon = makeDotIcon('#FFE67D', 5);
+const pinIcon = makeDotIcon('#FF8A3D', 5);
 const userIcon = makeDotIcon('#80C9FF');
 const DEFAULT_ZOOM_BOOST = Math.log2(1.2);
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -53,6 +53,7 @@ function RoutePath({ pins }: RoutePathProps) {
     svg.style.overflow = 'hidden';
     svg.setAttribute('aria-hidden', 'true');
     path.setAttribute('fill', 'none');
+    path.setAttribute('class', 'route-path');
     path.setAttribute('stroke', '#888888');
     path.setAttribute('stroke-width', '0.5');
     path.setAttribute('stroke-linecap', 'round');
