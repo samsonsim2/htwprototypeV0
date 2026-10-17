@@ -1,0 +1,801 @@
+{
+  "version": 2,
+  "speakers": {
+    "myna-1": {
+      "name": "Myna 1",
+      "colorLight": "#87401f",
+      "colorDark": "#efad85"
+    },
+    "myna-2": {
+      "name": "Myna 2",
+      "colorLight": "#30566f",
+      "colorDark": "#a4cce2"
+    },
+    "mynas": {
+      "name": "Myna 1 & 2",
+      "colorLight": "#6b4d24",
+      "colorDark": "#e0c491"
+    },
+    "bus-166": {
+      "name": "Bus 166",
+      "colorLight": "#414141",
+      "colorDark": "#e8e6df"
+    },
+    "archive": {
+      "name": "The Reclaimed Archive",
+      "colorLight": "#63517a",
+      "colorDark": "#cbb9e2"
+    },
+    "fig-child": {
+      "name": "Fig Child",
+      "colorLight": "#3f6045",
+      "colorDark": "#b5d0b2"
+    },
+    "malay-voice": {
+      "name": "Malay voice",
+      "colorLight": "#655d51",
+      "colorDark": "#cac5bb"
+    }
+  },
+  "language": "en-SG",
+  "timeUnit": "seconds",
+  "clock": "HTMLAudioElement.currentTime",
+  "timingMethod": "Local speech recognition followed by forced word alignment to script-corrected dialogue.",
+  "timingStatus": "machine-aligned",
+  "sourceDocument": "VO Dialogue - Corrected Numbering.pdf",
+  "layout": {
+    "showSpeaker": true,
+    "maxLines": 3,
+    "charactersPerLine": 32
+  },
+  "tracks": {
+    "pin-1": {
+      "location": "Berth B4 At Ang Mo Kio Interchange",
+      "audioFile": "01AngMoKioInt.mp3",
+      "duration": 256.0,
+      "sha256": "3ea7909416245c6ddac956b705627b41d7b0d734eb893d864751ddc4ebfaa88d",
+      "offsetSeconds": 0,
+      "script": "MYNA 1\nEh, see the pink buns?\n\nMYNA 2\nYa, we go there.\n\nMYNA 1\nMakan? Makan. Time to eat?\n\nMYNA 2\nYou hear that bell? The kueh stall is ready.\n\nMYNA 1\nWah, look at the colors... and the smell of the Rojak and the smoky Otah.\nBeen here long time.\nLonger than all this.\n\nMYNA 2\nCorrect. Humans rush past.\nWe stay close. Crumbs come to us.\n\nMYNA 1\nWe are everywhere.\n\nMYNA 2\nBecause this is where things fall.\n\nMYNA 1\nStay close.\nWe listen\nbefore things change.\n\nMYNA 2 (low)\nWe take what comes\nwhile it’s here.\n\nMYNA 1\nLet’s hop on the Bus.",
+      "notes": [
+        "Spoken text follows the recording; unspoken stage directions and explanatory translations are omitted."
+      ],
+      "cues": [
+        {
+          "speaker": "myna-1",
+          "start": 15.98,
+          "end": 18.12,
+          "lines": [
+            "Eh, see the pink buns?"
+          ]
+        },
+        {
+          "speaker": "myna-2",
+          "start": 18.4,
+          "end": 20.02,
+          "lines": [
+            "Ya, we go there."
+          ]
+        },
+        {
+          "speaker": "myna-1",
+          "start": 20.02,
+          "end": 23.78,
+          "lines": [
+            "Makan? Makan? Time to eat?"
+          ]
+        },
+        {
+          "speaker": "myna-2",
+          "start": 24.12,
+          "end": 26.38,
+          "lines": [
+            "You hear that bell? The kueh",
+            "stall is ready."
+          ]
+        },
+        {
+          "speaker": "myna-1",
+          "start": 26.66,
+          "end": 33.01,
+          "lines": [
+            "Wah! Look at the colors... and",
+            "the smell of the Rojak and the",
+            "smoky Otah."
+          ]
+        },
+        {
+          "speaker": "myna-1",
+          "start": 33.24,
+          "end": 36.48,
+          "lines": [
+            "Been here long time. Longer than",
+            "all this."
+          ]
+        },
+        {
+          "speaker": "myna-2",
+          "start": 36.78,
+          "end": 41.53,
+          "lines": [
+            "Correct. Humans rush past. We",
+            "stay close. Crumbs come to us."
+          ]
+        },
+        {
+          "speaker": "myna-1",
+          "start": 41.62,
+          "end": 43.06,
+          "lines": [
+            "We are everywhere."
+          ]
+        },
+        {
+          "speaker": "myna-2",
+          "start": 43.6,
+          "end": 45.54,
+          "lines": [
+            "Because this is where things",
+            "fall."
+          ]
+        },
+        {
+          "speaker": "myna-1",
+          "start": 45.96,
+          "end": 49.62,
+          "lines": [
+            "Stay close. We listen before",
+            "things change."
+          ]
+        },
+        {
+          "speaker": "myna-2",
+          "start": 50.12,
+          "end": 51.97,
+          "lines": [
+            "We take what comes while it's",
+            "here."
+          ]
+        },
+        {
+          "speaker": "myna-1",
+          "start": 52.4,
+          "end": 53.7,
+          "lines": [
+            "Let's hop on the bus."
+          ]
+        }
+      ]
+    },
+    "pin-2": {
+      "location": "Ang Mo Kio Interchange",
+      "audioFile": "02AngMoKioIntExit.mp3",
+      "duration": 240.0,
+      "sha256": "fde6456194ae1052f61f129badf16cb6f24961690873b56f7d181f010248f3f3",
+      "offsetSeconds": 0,
+      "script": "BUS 166 (warm, clear, starts when the bus leaves the Interchange Bus stop)\n\nWelcome, Passenger of Time.\nI am Bus 166.\nYou have joined me in motion.\nFor as long as you decide,\nI will carry you across the island—\nalong housing estates and reservoirs,\nunder tunnels and over old rivers,\ntowards a forest that may soon vanish…\nor survive.\nLook out through my windows, [pause]\nconstruction zones pass by—\nthe North–South Corridor in the making.\nThe city rehearses its next version.\nPeople wait at the next stop.\nThe future arrives in stages.\nStay on board,\nor step off to wander a trail.\nEither way,\nthis journey belongs to you.\nLet the outside world fade.\nLet the bus become your moving theatre.\nEverything you see is temporary.\nIncluding me.",
+      "notes": [
+        "Spoken text follows the recording; unspoken stage directions and explanatory translations are omitted."
+      ],
+      "cues": [
+        {
+          "speaker": "bus-166",
+          "start": 11.9,
+          "end": 18.25,
+          "lines": [
+            "Welcome, passenger of time. I am",
+            "bus 166. You have joined me"
+          ]
+        },
+        {
+          "speaker": "bus-166",
+          "start": 18.25,
+          "end": 23.75,
+          "lines": [
+            "in motion. For as long as you",
+            "decide, I will carry you across",
+            "the"
+          ]
+        },
+        {
+          "speaker": "bus-166",
+          "start": 23.75,
+          "end": 29.96,
+          "lines": [
+            "island, along housing estates",
+            "and reservoirs, under tunnels",
+            "and over"
+          ]
+        },
+        {
+          "speaker": "bus-166",
+          "start": 29.96,
+          "end": 35.31,
+          "lines": [
+            "old rivers, towards a forest",
+            "that may soon vanish or"
+          ]
+        },
+        {
+          "speaker": "bus-166",
+          "start": 35.31,
+          "end": 40.81,
+          "lines": [
+            "survive. Look out through my",
+            "windows. Construction zones pass"
+          ]
+        },
+        {
+          "speaker": "bus-166",
+          "start": 40.81,
+          "end": 46.85,
+          "lines": [
+            "by, the north-south corridor in",
+            "the making, the city rehearses",
+            "its next"
+          ]
+        },
+        {
+          "speaker": "bus-166",
+          "start": 46.85,
+          "end": 52.69,
+          "lines": [
+            "version. People wait at the next",
+            "stop. The future arrives in"
+          ]
+        },
+        {
+          "speaker": "bus-166",
+          "start": 52.69,
+          "end": 58.05,
+          "lines": [
+            "stages. Stay on board, or step",
+            "off to wander a"
+          ]
+        },
+        {
+          "speaker": "bus-166",
+          "start": 58.05,
+          "end": 64.47,
+          "lines": [
+            "trail. Either way, this journey",
+            "belongs to you. Let the outside",
+            "world"
+          ]
+        },
+        {
+          "speaker": "bus-166",
+          "start": 64.47,
+          "end": 70.79,
+          "lines": [
+            "fade. Let the bus become your",
+            "moving theater. Everything you",
+            "see"
+          ]
+        },
+        {
+          "speaker": "bus-166",
+          "start": 70.79,
+          "end": 73.47,
+          "lines": [
+            "is temporary, including me."
+          ]
+        }
+      ]
+    },
+    "pin-3": {
+      "location": "Blk 324",
+      "audioFile": "03Blk324.mp3",
+      "duration": 240.0,
+      "sha256": "4b71f9abf0528e257b6538ce0ce25016d1a86264539598547023dd8709bf938d",
+      "offsetSeconds": 0,
+      "script": "BUS 166\nWe are heading from Ulu towards Ulu.\nYou won’t find a bus stop with this name. It is our magical journey that carries the name.\nStay on board or prepare to wander a trail.\n\nMYNAS (chatting)\nTHE RECLAIMED ARCHIVE\nUlu—in Malay—means upstream, remote, a place slightly out of sight.\n(a Malay voice explains)\n(Malay voice)\nHulu hilir—\nupstream, downstream.\nBack and forth.\n\nMYNA 1&2 (imitating the Archive)\nhulu hilir\nhulu hilir\n\nMYNA 1\nThe Archive talking so chim (profound) again. Upstream, downstream... I just follow my nose.\n\nMYNA 2\nI just follow the smell.\nCurry puff.\nWaste.\nBus fumes.\n\nMYNA 1\nThen heat.\nPanas. Panas.\n\nMYNA 2\nThen noise.",
+      "notes": [
+        "Spoken text follows the recording; unspoken stage directions and explanatory translations are omitted."
+      ],
+      "cues": [
+        {
+          "speaker": "bus-166",
+          "start": 11.92,
+          "end": 17.61,
+          "lines": [
+            "We are heading from Ulu towards",
+            "Ulu. You won't find a bus stop",
+            "with this name."
+          ]
+        },
+        {
+          "speaker": "bus-166",
+          "start": 18.02,
+          "end": 24.66,
+          "lines": [
+            "It is our magical journey that",
+            "carries the name. Stay on board",
+            "or prepare to wander a trail."
+          ]
+        },
+        {
+          "speaker": "archive",
+          "start": 29.82,
+          "end": 36.0,
+          "lines": [
+            "Ulu, in Malay, means upstream.",
+            "Remote, a place slightly out of",
+            "sight."
+          ]
+        },
+        {
+          "speaker": "malay-voice",
+          "start": 37.01,
+          "end": 41.73,
+          "lines": [
+            "Hulu hilir, upstream,",
+            "downstream. Back and forth."
+          ]
+        },
+        {
+          "speaker": "mynas",
+          "start": 43.84,
+          "end": 47.57,
+          "lines": [
+            "Hulu hilir. Hulu hilir."
+          ]
+        },
+        {
+          "speaker": "myna-1",
+          "start": 48.92,
+          "end": 53.3,
+          "lines": [
+            "The Archive talking so chim",
+            "again. Upstream, downstream."
+          ]
+        },
+        {
+          "speaker": "myna-1",
+          "start": 53.96,
+          "end": 55.39,
+          "lines": [
+            "I just follow my nose."
+          ]
+        },
+        {
+          "speaker": "myna-2",
+          "start": 55.6,
+          "end": 59.42,
+          "lines": [
+            "I just follow the smell. Curry",
+            "puff. Waste. Bus fumes."
+          ]
+        },
+        {
+          "speaker": "myna-1",
+          "start": 59.86,
+          "end": 62.88,
+          "lines": [
+            "Then heat. Panas, Panas."
+          ]
+        },
+        {
+          "speaker": "myna-2",
+          "start": 63.84,
+          "end": 64.88,
+          "lines": [
+            "Then noise."
+          ]
+        }
+      ]
+    },
+    "pin-4": {
+      "location": "Blk 209",
+      "audioFile": "04Blk209.mp3",
+      "duration": 240.0,
+      "sha256": "1407fb3739ff346adc44aa8fe576bd5c90064973d18ae43ae1da849204807506",
+      "offsetSeconds": 0,
+      "script": "MYNA 1\nOld names always have a \"vibe,\" don't you think? Like Ang Mo Kio.\n\nMYNA 2\nYa lor. Red Hair Man Bridge. Ang Mo means \"Red Hair\" in Hokkien—how people used to\ndescribe the Caucasians.\n\nMYNA 1\nYou think it refers to Sir Thompson’s hair? He was quite the Ang Mo (Westerner).\n\nMYNA 2\nI still think it refers to tomatoes. Red and round! Much better than a bridge.\n\nRECLAIMED ARCHIVE\nSpelling is fixed. \nMeaning is still in motion.\n\nMYNA 1\nDoes it not remind us of the red hair of Sir Thumbel Thompson?\n\nMYNA 2\nI like to refer it to tomatoes.\n\nBUS 166\nApproaching Kebun Baru. \nA unique place where birds gather to sing. \nEvery Sunday, bird singing competitions take place here.\nYou may step off Ang Mo Kio Pri School.\nOr stay with me.\nPlease note that birds are not allowed on the bus!\n\nMYNA 1(Indignant)\nYou hear that? The bus says birds not allowed! Discrimination leh!\n\nMYNA 2\n\nDon't care lah. Does the 166 think it can see us through the CCTV? We are already here!\n\nMYNA 1\nWe won't drop anything, we are \"high-class\" birds. We only drop some birdsong for the people.\n\nMYNA 2\nListen! My friends are there! The Mata Puteh—the Oriental White-eye—and the Zebra Doves.\n\nMYNA 1\nThe names might stay on the signs, but the sounds... the sounds linger in the air long after we\nfly away.",
+      "notes": [
+        "Spoken text follows the recording; unspoken stage directions and explanatory translations are omitted.",
+        "The recording omits the repeated Thompson/tomatoes exchange in the PDF."
+      ],
+      "cues": [
+        {
+          "speaker": "myna-1",
+          "start": 12.88,
+          "end": 18.16,
+          "lines": [
+            "Old names always have a vibe,",
+            "don't you think? Like Ang Mo",
+            "Kio."
+          ]
+        },
+        {
+          "speaker": "myna-2",
+          "start": 18.5,
+          "end": 23.95,
+          "lines": [
+            "Ya lor. Red Hair Man Bridge. Ang",
+            "Mo means Red Hair in Hokkien,",
+            "how people used to describe the"
+          ]
+        },
+        {
+          "speaker": "myna-2",
+          "start": 23.95,
+          "end": 24.79,
+          "lines": [
+            "Caucasians."
+          ]
+        },
+        {
+          "speaker": "myna-1",
+          "start": 25.28,
+          "end": 30.39,
+          "lines": [
+            "You think it refers to Sir",
+            "Thompson's hair? He was quite",
+            "the Ang Mo."
+          ]
+        },
+        {
+          "speaker": "myna-2",
+          "start": 30.72,
+          "end": 34.83,
+          "lines": [
+            "I still think it refers to",
+            "tomatoes, red and round, much",
+            "better than a bridge."
+          ]
+        },
+        {
+          "speaker": "archive",
+          "start": 36.14,
+          "end": 39.8,
+          "lines": [
+            "Spelling is fixed, meaning is",
+            "still in motion."
+          ]
+        },
+        {
+          "speaker": "bus-166",
+          "start": 41.38,
+          "end": 45.86,
+          "lines": [
+            "Approaching Kebun Baru. A unique",
+            "place where birds gather to",
+            "sing."
+          ]
+        },
+        {
+          "speaker": "bus-166",
+          "start": 47.0,
+          "end": 50.11,
+          "lines": [
+            "Every Sunday, bird singing",
+            "competitions take place here."
+          ]
+        },
+        {
+          "speaker": "bus-166",
+          "start": 50.68,
+          "end": 54.9,
+          "lines": [
+            "You may step off Ang Mo Kio Pri",
+            "School. Or stay with me."
+          ]
+        },
+        {
+          "speaker": "bus-166",
+          "start": 55.48,
+          "end": 58.2,
+          "lines": [
+            "Please note that birds are not",
+            "allowed on the bus."
+          ]
+        },
+        {
+          "speaker": "myna-1",
+          "start": 59.92,
+          "end": 65.67,
+          "lines": [
+            "You hear that? The bus says",
+            "birds not allowed!",
+            "Discrimination"
+          ]
+        },
+        {
+          "speaker": "myna-1",
+          "start": 65.67,
+          "end": 66.76,
+          "lines": [
+            "leh!"
+          ]
+        },
+        {
+          "speaker": "myna-2",
+          "start": 66.76,
+          "end": 71.19,
+          "lines": [
+            "Don't care lah. Does the 166",
+            "think it can see us through the",
+            "CCTV?"
+          ]
+        },
+        {
+          "speaker": "myna-2",
+          "start": 71.19,
+          "end": 72.08,
+          "lines": [
+            "We are already here!"
+          ]
+        },
+        {
+          "speaker": "myna-1",
+          "start": 72.52,
+          "end": 79.22,
+          "lines": [
+            "We won't drop anything, we are",
+            "high-class birds. We only drop",
+            "some birdsong for the people."
+          ]
+        },
+        {
+          "speaker": "myna-2",
+          "start": 79.88,
+          "end": 84.87,
+          "lines": [
+            "Listen! My friends are there!",
+            "The Mata Puteh, the Oriental",
+            "White-eye, and the Zebra Doves."
+          ]
+        },
+        {
+          "speaker": "myna-1",
+          "start": 85.4,
+          "end": 90.53,
+          "lines": [
+            "The names might stay on the",
+            "signs, but the sounds, the",
+            "sounds linger in the air long"
+          ]
+        },
+        {
+          "speaker": "myna-1",
+          "start": 90.53,
+          "end": 91.97,
+          "lines": [
+            "after we fly away."
+          ]
+        }
+      ]
+    },
+    "pin-5": {
+      "location": "Ang Mo Kio Pri Sch",
+      "audioFile": "05AngMoKioPrSch.mp3",
+      "duration": 236.0,
+      "sha256": "c7f99d5798823d15c7477b149dfdc3f0f0dd80e7a2b3ee53075a2efaacbd1687",
+      "offsetSeconds": 0,
+      "script": "Bus 166\nAlright—we are rolling!\nMayflower Stop Ahead\nA good name, if you like trees.\nFewer flowers than promised, though.\n\nRECLAIMED ARCHIVE\nMayflower, the name of a ship that crossed the ocean.\nPeople, beliefs, fears, ambitions—\na floating beginning.\nHistory remembers the landing,\nnot the uncertainty of the voyage.",
+      "notes": [
+        "Spoken text follows the recording; unspoken stage directions and explanatory translations are omitted.",
+        "This recording also includes the dialogue under PDF locations #6 and #7, through the Kallang repetition. Those spoken sections are captioned here because they are in audio 05."
+      ],
+      "cues": [
+        {
+          "speaker": "bus-166",
+          "start": 11.82,
+          "end": 17.55,
+          "lines": [
+            "Alright, we are rolling!",
+            "Mayflower Stop Ahead. A good",
+            "name, if you like"
+          ]
+        },
+        {
+          "speaker": "bus-166",
+          "start": 17.55,
+          "end": 20.51,
+          "lines": [
+            "trees. Fewer flowers than",
+            "promised,"
+          ]
+        },
+        {
+          "speaker": "bus-166",
+          "start": 20.51,
+          "end": 24.93,
+          "lines": [
+            "though."
+          ]
+        },
+        {
+          "speaker": "archive",
+          "start": 24.93,
+          "end": 31.29,
+          "lines": [
+            "Mayflower, the name of a ship",
+            "that crossed"
+          ]
+        },
+        {
+          "speaker": "archive",
+          "start": 31.29,
+          "end": 36.09,
+          "lines": [
+            "the ocean. People, beliefs,",
+            "fears, ambitions, a floating"
+          ]
+        },
+        {
+          "speaker": "archive",
+          "start": 36.09,
+          "end": 41.69,
+          "lines": [
+            "beginning. History remembers the",
+            "landing, not the uncertainty of",
+            "the"
+          ]
+        },
+        {
+          "speaker": "archive",
+          "start": 41.69,
+          "end": 47.55,
+          "lines": [
+            "voyage."
+          ]
+        },
+        {
+          "speaker": "fig-child",
+          "start": 47.55,
+          "end": 53.27,
+          "lines": [
+            "Leaves brushing concrete. Roots",
+            "pressing into forgotten"
+          ]
+        },
+        {
+          "speaker": "fig-child",
+          "start": 53.27,
+          "end": 57.62,
+          "lines": [
+            "soil. Where paths end, the fig"
+          ]
+        },
+        {
+          "speaker": "fig-child",
+          "start": 57.62,
+          "end": 61.68,
+          "lines": [
+            "begins."
+          ]
+        },
+        {
+          "speaker": "myna-1",
+          "start": 61.68,
+          "end": 68.1,
+          "lines": [
+            "Eh! Kallang River coming up. You",
+            "feel that or not? Something",
+            "macam, like,"
+          ]
+        },
+        {
+          "speaker": "myna-1",
+          "start": 68.1,
+          "end": 71.43,
+          "lines": [
+            "creeping in. Bit eerie leh."
+          ]
+        },
+        {
+          "speaker": "myna-2",
+          "start": 71.43,
+          "end": 76.59,
+          "lines": [
+            "Ulu vibes, man. My grandfather",
+            "say we must say Ulu Kalang the",
+            "old way."
+          ]
+        },
+        {
+          "speaker": "myna-2",
+          "start": 76.59,
+          "end": 80.25,
+          "lines": [
+            "If humans only look at their",
+            "digital charts, the forest goes",
+            "quiet..."
+          ]
+        },
+        {
+          "speaker": "myna-2",
+          "start": 80.25,
+          "end": 81.12,
+          "lines": [
+            "and so do we."
+          ]
+        },
+        {
+          "speaker": "fig-child",
+          "start": 93.06,
+          "end": 98.15,
+          "lines": [
+            "Say Ulu Kalang, the old way too.",
+            "If only the chart"
+          ]
+        },
+        {
+          "speaker": "fig-child",
+          "start": 98.15,
+          "end": 103.84,
+          "lines": [
+            "survives, the forest goes quiet.",
+            "So do I."
+          ]
+        },
+        {
+          "speaker": "archive",
+          "start": 107.11,
+          "end": 112.49,
+          "lines": [
+            "Kallang carries the name of the",
+            "Orang Kallang, people of the",
+            "river, present before the city"
+          ]
+        },
+        {
+          "speaker": "archive",
+          "start": 112.49,
+          "end": 118.72,
+          "lines": [
+            "and absent from its records now.",
+            "Before plantations and zoning",
+            "maps, this"
+          ]
+        },
+        {
+          "speaker": "archive",
+          "start": 118.72,
+          "end": 122.03,
+          "lines": [
+            "area belonged to the indigenous",
+            "inhabitants of Singapore."
+          ]
+        },
+        {
+          "speaker": "archive",
+          "start": 122.59,
+          "end": 129.08,
+          "lines": [
+            "communities who lived not only",
+            "on land but also on boats,",
+            "moving between sea,"
+          ]
+        },
+        {
+          "speaker": "archive",
+          "start": 129.08,
+          "end": 131.68,
+          "lines": [
+            "river, and shore as part of a",
+            "single"
+          ]
+        },
+        {
+          "speaker": "archive",
+          "start": 131.68,
+          "end": 136.12,
+          "lines": [
+            "environment."
+          ]
+        },
+        {
+          "speaker": "mynas",
+          "start": 136.12,
+          "end": 139.91,
+          "lines": [
+            "Kallang, Kallang. Kallang,",
+            "Kallang. Kallang, Kallang."
+          ]
+        }
+      ]
+    }
+  }
+}

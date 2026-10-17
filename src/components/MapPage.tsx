@@ -8,11 +8,13 @@ import {
   Circle,
 } from 'react-leaflet';
 import L from 'leaflet';
-import { Navigation, Play, Pause, Settings, Layers } from 'lucide-react';
+import { Navigation, Play, Pause, Settings, Layers, Moon, Sun } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { getStoredPins, LocationPin } from '../config';
 import MagneticField from './MagneticField';
+import MapSubtitles from './MapSubtitles';
+import JourneyOpening from './JourneyOpening';
 import usePlaybackField from './usePlaybackField';
 import FieldDebugPanel, { DEFAULT_FIELD_SETTINGS } from './FieldDebugPanel';
 
@@ -179,12 +181,26 @@ export default function MapPage() {
   const [activePin, setActivePin] = useState<LocationPin | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const [showOpening, setShowOpening] = useState(true);
+  useEffect(() => {
+    if (!hasStarted) return;
+    const timer = window.setTimeout(() => setShowOpening(false), 850);
+    return () => window.clearTimeout(timer);
+  }, [hasStarted]);
   const [mapOpacity, setMapOpacity] = useState(0);
   const [showRoute, setShowRoute] = useState(true);
   const [showMarkers, setShowMarkers] = useState(true);
   const [showGeofences, setShowGeofences] = useState(false);
   const [showLayerDebug, setShowLayerDebug] = useState(false);
   const [fieldSettings, setFieldSettings] = useState({ ...DEFAULT_FIELD_SETTINGS });
+  const [darkMap, setDarkMap] = useState(false);
+  const lightPaletteRef = useRef({ color: DEFAULT_FIELD_SETTINGS.color, background: DEFAULT_FIELD_SETTINGS.background });
+  const toggleMapTheme = () => {
+    if (!darkMap) lightPaletteRef.current = { color: fieldSettings.color, background: fieldSettings.background };
+    const palette = darkMap ? lightPaletteRef.current : { color: '#e8e6df', background: '#000000' };
+    setFieldSettings(current => ({ ...current, ...palette }));
+    setDarkMap(!darkMap);
+  };
   const [progress, setProgress] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -445,10 +461,17 @@ export default function MapPage() {
   };
 
   return (
-    <div className="relative w-full h-full bg-zinc-950">
-      <div className="map-header absolute top-0 left-0 right-0 z-[1000] pointer-events-none">
+    <div className={`relative w-full h-full bg-zinc-950${darkMap ? " dark-map" : ""}${showOpening ? " opening-active" : ""}`}>
+      <div hidden={showOpening} className="map-header absolute top-0 left-0 right-0 z-[1000] pointer-events-none">
         <div className="map-header-row">
-          <div className="map-toolbar">      {hasStarted && (
+          <div className="map-toolbar">
+            <div className="map-tool">
+              <button type="button" onClick={toggleMapTheme} aria-pressed={darkMap}
+                aria-label="Dark map" title={darkMap ? 'Switch to light map' : 'Switch to dark map'}
+                className="flex items-center justify-center rounded-xl border backdrop-blur-md">
+                {darkMap ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </button>
+            </div>      {hasStarted && (
         <aside className="map-tool text-white">
           <button type="button" title="Map overlays" aria-label="Map overlay debug settings"
             aria-expanded={showLayerDebug} aria-controls="map-overlay-debug"
@@ -487,7 +510,7 @@ export default function MapPage() {
         </div>
       </div>
 
-      <div className="absolute inset-0 z-0">
+      <div className="map-scene absolute inset-0 z-0" inert={showOpening}>
         <MapContainer
           center={[1.370050598938354, 103.84907773928799]}
           zoom={15 + DEFAULT_ZOOM_BOOST}
@@ -502,9 +525,9 @@ export default function MapPage() {
           />
 
 
-          <MagneticField pins={pins} enabled={hasStarted} userPos={userPos} settings={fieldSettings}
+          <MagneticField pins={pins} enabled={true} userPos={userPos} settings={fieldSettings}
             sampleAudio={playbackField.sample} />
-          <LocationMarker setUserPos={setUserPos} visible={showMarkers} />
+          {hasStarted && <LocationMarker setUserPos={setUserPos} visible={showMarkers} />}
           {showRoute && <RoutePath pins={pins} />}
 
           {pins.map((pin) => (
@@ -532,6 +555,7 @@ export default function MapPage() {
         </MapContainer>
       </div>
 
+      {hasStarted && <MapSubtitles audioRef={audioRef} trackId={activePin?.id} audioUrl={activePin?.audioUrl} />}
       {activePin && <div className="audio-bottom-wash" aria-hidden="true" />}
       <AnimatePresence>
         {activePin && (
@@ -580,45 +604,7 @@ export default function MapPage() {
         className="hidden"
       />
 
-      {!hasStarted && (
-        <div className="absolute inset-0 z-[2000] bg-zinc-950 flex flex-col items-center justify-center p-8 text-center">
-          <div className="max-w-xs">
-            {userPos ? (
-              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}>
-                <div className="w-20 h-20 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-8">
-                  <Play className="text-emerald-500 w-10 h-10 fill-current ml-1" />
-                </div>
-                <h2 className="text-white text-2xl font-bold mb-3">Ready to Explore?</h2>
-                <p className="text-zinc-400 text-sm mb-10">
-                  We&apos;ve found your location. Tap below to start your audio-guided tour.
-                </p>
-
-                <button
-                  onClick={handleStart}
-                  className="w-full py-4 bg-emerald-500 text-zinc-950 rounded-2xl text-base font-bold shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
-                >
-                  Start Tour
-                </button>
-              </motion.div>
-            ) : (
-              <>
-                <Navigation className="text-blue-400 w-12 h-12 animate-bounce mx-auto mb-6" />
-                <h2 className="text-white text-xl font-bold mb-2">Finding your location</h2>
-                <p className="text-zinc-400 text-sm mb-8">
-                  Please allow GPS access to start your tour.
-                </p>
-
-                <button
-                  onClick={() => setUserPos([1.370050598938354, 103.84907773928799])}
-                  className="px-6 py-3 bg-zinc-800 text-white rounded-xl text-sm font-medium border border-white/10"
-                >
-                  Skip &amp; Use Default Location
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
+      {showOpening && <JourneyOpening settings={fieldSettings} onContinue={handleStart} />}
     </div>
   );
 }
