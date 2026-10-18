@@ -298,6 +298,7 @@ body {
 .ar-eyebrow { margin: 0; font-size: 10px; letter-spacing: .09em; }
 .ar-mode-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid rgba(255,255,255,.5); border-radius: 999px; background: rgba(0,0,0,.3); font-weight: 700; }
 .ar-mode-badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+.ar-header .ar-mode-badge, .ar-header .ar-back-button { position: relative; top: calc(max(3dvh, env(safe-area-inset-top)) - var(--ar-header-clearance, 0px) - env(safe-area-inset-top) - 24px); }
 .ar-back-button { position: relative; z-index: 1; pointer-events: auto; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; flex-shrink: 0; padding: 8px 12px; border: 1px solid rgba(255,255,255,.4); border-radius: 999px; background: rgba(0,0,0,.3); color: #fff; font: inherit; font-size: 12px; white-space: nowrap; }
 .ar-icon-button { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; flex-shrink: 0; border: 1px solid rgba(255,255,255,.3); border-radius: 50%; background: rgba(0,0,0,.25); color: #fff; }
 .ar-back-button { min-height: 52px; min-width: 128px; touch-action: none; user-select: none; -webkit-user-select: none; }
