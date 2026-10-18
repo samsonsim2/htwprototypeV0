@@ -4,6 +4,7 @@ import {
   TileLayer,
   Marker,
   Popup,
+  Tooltip,
   useMap,
   Circle,
 } from 'react-leaflet';
@@ -13,6 +14,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { getStoredPins, LocationPin } from '../config';
 import MagneticField from './MagneticField';
+import DebugAudioPanel from './DebugAudioPanel';
 import MapSubtitles from './MapSubtitles';
 import JourneyOpening from './JourneyOpening';
 import usePlaybackField from './usePlaybackField';
@@ -109,6 +111,13 @@ function RoutePath({ pins }: RoutePathProps) {
   }, [map, pins]);
   return null;
 }
+function DebugMapFocus({ pin }: { pin: LocationPin | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (pin) map.setView([pin.lat, pin.lng], 17 + DEFAULT_ZOOM_BOOST, { animate: false });
+  }, [map, pin]);
+  return null;
+}
 function LocationMarker({ setUserPos, visible }: { setUserPos: (pos: [number, number]) => void; visible: boolean }) {
   const [position, setPosition] = useState<L.LatLng | null>(null);
   const map = useMap();
@@ -190,6 +199,11 @@ export default function MapPage() {
   const [mapOpacity, setMapOpacity] = useState(0);
   const [showRoute, setShowRoute] = useState(true);
   const [showMarkers, setShowMarkers] = useState(true);
+  const [showLocationNames, setShowLocationNames] = useState(false);
+  const [debugPlayback, setDebugPlayback] = useState(false);
+  const debugPlaybackRef = useRef(false);
+  const playbackRequestRef = useRef(0);
+  const [debugPinId, setDebugPinId] = useState(pins[0]?.id ?? '');
   const [showGeofences, setShowGeofences] = useState(false);
   const [showLayerDebug, setShowLayerDebug] = useState(false);
   const [fieldSettings, setFieldSettings] = useState({ ...DEFAULT_FIELD_SETTINGS });
@@ -263,7 +277,10 @@ export default function MapPage() {
   const playPinAudio = async (pin: LocationPin) => {
     if (!audioRef.current) return;
 
+    const request = ++playbackRequestRef.current;
     setProgress(0);
+    setElapsed(0);
+    setDuration(0);
     setAudioError(null);
     setActivePin(pin);
 
@@ -273,8 +290,9 @@ export default function MapPage() {
 
     try {
       await audioRef.current.play();
-      setIsPlaying(true);
+      if (request === playbackRequestRef.current) setIsPlaying(true);
     } catch (err) {
+      if (request !== playbackRequestRef.current) return;
       console.warn('Audio play failed:', err);
       setIsPlaying(false);
       setAudioError('Tap play to start audio.');
@@ -284,6 +302,7 @@ export default function MapPage() {
   const switchToPinAudio = async (nextPin: LocationPin) => {
     if (!audioRef.current || isSwitchingRef.current) return;
 
+    const request = ++playbackRequestRef.current;
     isSwitchingRef.current = true;
     setAudioError(null);
     setProgress(0);
@@ -304,11 +323,16 @@ export default function MapPage() {
         outgoingAudio.volume = currentVolume;
 
         const startFadeClone = async () => {
+          if (request !== playbackRequestRef.current) return;
           try {
             const safeTime = Number.isFinite(currentTime) ? currentTime : 0;
             outgoingAudio.currentTime = safeTime;
 
             await outgoingAudio.play();
+            if (request !== playbackRequestRef.current) {
+              outgoingAudio.pause();
+              return;
+            }
 
             fadingAudiosRef.current.push(outgoingAudio);
             fadeOutAndStopAudio(outgoingAudio, 4000);
@@ -317,6 +341,7 @@ export default function MapPage() {
             mainAudio.currentTime = 0;
             mainAudio.volume = 1;
           } catch (err) {
+            if (request !== playbackRequestRef.current) return;
             console.warn('Outgoing fade audio failed to play:', err);
 
             mainAudio.pause();
@@ -342,6 +367,7 @@ export default function MapPage() {
 
             const onError = () => {
               cleanupListeners();
+              if (request !== playbackRequestRef.current) { resolve(); return; }
               console.warn('Outgoing audio metadata failed to load');
 
               mainAudio.pause();
@@ -356,6 +382,7 @@ export default function MapPage() {
         }
       }
 
+      if (request !== playbackRequestRef.current) return;
       mainAudio.src = nextPin.audioUrl;
       mainAudio.currentTime = 0;
       mainAudio.volume = 1;
@@ -363,32 +390,35 @@ export default function MapPage() {
       setActivePin(nextPin);
 
       await mainAudio.play();
-      setIsPlaying(true);
+      if (request === playbackRequestRef.current) setIsPlaying(true);
     } catch (err) {
+      if (request !== playbackRequestRef.current) return;
       console.warn('Failed to switch to new pin audio:', err);
       setIsPlaying(false);
       setAudioError('Tap play to start audio.');
       setActivePin(nextPin);
     } finally {
-      isSwitchingRef.current = false;
+      if (request === playbackRequestRef.current) isSwitchingRef.current = false;
     }
   };
 
   useEffect(() => {
-    if (!userPos || !hasStarted || !audioRef.current) return;
+    if (debugPlaybackRef.current || !userPos || !hasStarted || !audioRef.current) return;
     if (isSwitchingRef.current) return;
 
     const closestPin = getClosestPinInRange(userPos);
 
     if (!closestPin) return;
     if (activePin?.id === closestPin.id) return;
+    // Keep a manually selected recording at a shared geofence (10 / 10b).
+    if (activePin && activePin.lat === closestPin.lat && activePin.lng === closestPin.lng) return;
 
     if (switchTimeoutRef.current) {
       window.clearTimeout(switchTimeoutRef.current);
     }
 
     switchTimeoutRef.current = window.setTimeout(() => {
-      switchToPinAudio(closestPin);
+      if (!debugPlaybackRef.current) void switchToPinAudio(closestPin);
     }, 500);
 
     return () => {
@@ -396,7 +426,7 @@ export default function MapPage() {
         window.clearTimeout(switchTimeoutRef.current);
       }
     };
-  }, [userPos, hasStarted, activePin]);
+  }, [userPos, hasStarted, activePin, debugPlayback]);
 
   useEffect(() => {
     return () => {
@@ -421,6 +451,57 @@ export default function MapPage() {
       fadingAudiosRef.current = [];
     };
   }, []);
+
+  const stopPreviewAudio = () => {
+    ++playbackRequestRef.current;
+    isSwitchingRef.current = false;
+    if (switchTimeoutRef.current) window.clearTimeout(switchTimeoutRef.current);
+    switchTimeoutRef.current = null;
+    fadeIntervalsRef.current.forEach(id => window.clearInterval(id));
+    fadeIntervalsRef.current = [];
+    fadingAudiosRef.current.forEach(audio => { audio.pause(); audio.removeAttribute('src'); audio.load(); });
+    fadingAudiosRef.current = [];
+    const audio = audioRef.current;
+    if (audio) { audio.pause(); audio.removeAttribute('src'); audio.load(); }
+    setActivePin(null);
+    setIsPlaying(false);
+    setElapsed(0);
+    setDuration(0);
+    setProgress(0);
+    setAudioError(null);
+  };
+
+  const enterDebugPlayback = () => {
+    debugPlaybackRef.current = true;
+    setDebugPlayback(true);
+    setDebugPinId(activePin?.id ?? pins[0]?.id ?? '');
+    stopPreviewAudio();
+  };
+
+  const previewDebugPin = (id: string) => {
+    const pin = pins.find(candidate => candidate.id === id);
+    if (!pin) return;
+    debugPlaybackRef.current = true;
+    setDebugPlayback(true);
+    setDebugPinId(pin.id);
+    stopPreviewAudio();
+    playbackField.prepare();
+    void playPinAudio(pin);
+  };
+
+  const exitDebugPlayback = () => {
+    stopPreviewAudio();
+    debugPlaybackRef.current = false;
+    setDebugPlayback(false);
+  };
+
+  const seekDebugAudio = (seconds: number) => {
+    const audio = audioRef.current;
+    if (!debugPlaybackRef.current || !audio || !Number.isFinite(audio.duration)) return;
+    audio.currentTime = Math.max(0, Math.min(seconds, audio.duration));
+    setElapsed(audio.currentTime);
+    setProgress(audio.duration > 0 ? audio.currentTime / audio.duration * 100 : 0);
+  };
 
   const handleStart = async () => {
     playbackField.prepare();
@@ -490,6 +571,10 @@ export default function MapPage() {
                 Location markers
                 <input type="checkbox" checked={showMarkers} onChange={e => setShowMarkers(e.target.checked)} className="h-5 w-5 accent-emerald-500" />              </label>
               <label className="flex min-h-10 cursor-pointer items-center justify-between gap-3 text-xs">
+                Stop / location names
+                <input type="checkbox" checked={showLocationNames} onChange={e => setShowLocationNames(e.target.checked)} className="h-5 w-5 accent-emerald-500" />
+              </label>
+              <label className="flex min-h-10 cursor-pointer items-center justify-between gap-3 text-xs">
                 Geofence radius
                 <input type="checkbox" checked={showGeofences} onChange={e => setShowGeofences(e.target.checked)} className="h-5 w-5 accent-emerald-500" />
               </label>
@@ -497,6 +582,10 @@ export default function MapPage() {
           )}
         </aside>
       )}
+      {hasStarted && <DebugAudioPanel pins={pins} enabled={debugPlayback} selectedId={debugPinId}
+        activeId={activePin?.id} playing={isPlaying} elapsed={elapsed} duration={duration}
+        onEnter={enterDebugPlayback} onExit={exitDebugPlayback} onPreview={previewDebugPin}
+        onTogglePlayback={toggleAudio} onSeek={seekDebugAudio} />}
       {hasStarted && (
         <FieldDebugPanel settings={fieldSettings} onChange={setFieldSettings}
           mapOpacity={mapOpacity} onMapOpacity={setMapOpacity} />
@@ -525,18 +614,27 @@ export default function MapPage() {
           />
 
 
-          <MagneticField pins={pins} enabled={true} userPos={userPos} settings={fieldSettings}
+          <MagneticField pins={pins} enabled={true} userPos={debugPlayback && activePin ? [activePin.lat, activePin.lng] : userPos} settings={fieldSettings}
             sampleAudio={playbackField.sample} />
-          {hasStarted && <LocationMarker setUserPos={setUserPos} visible={showMarkers} />}
+          <DebugMapFocus pin={debugPlayback ? activePin : null} />
+          {hasStarted && !debugPlayback && <LocationMarker setUserPos={setUserPos} visible={showMarkers} />}
           {showRoute && <RoutePath pins={pins} />}
 
           {pins.map((pin) => (
             <React.Fragment key={pin.id}>
               {showMarkers && <Marker position={[pin.lat, pin.lng]} icon={pinIcon} title={pin.name}>
+                {showLocationNames && <Tooltip permanent direction="top" offset={[0, pin.id === 'pin-10b' ? -34 : -8]} className="stop-location-label">
+                  {pin.name}
+                </Tooltip>}
                 <Popup>
                   <div className="p-1">
                     <h3 className="font-bold text-zinc-900">{pin.name}</h3>
                     <p className="text-xs text-zinc-600 mt-1">{pin.description}</p>
+                    {pins.filter(candidate => candidate.lat === pin.lat && candidate.lng === pin.lng).map(candidate => (
+                      <button key={candidate.id} type="button" className="mt-2 block text-xs underline" onClick={() => previewDebugPin(candidate.id)}>
+                        Debug: play {candidate.name}
+                      </button>
+                    ))}
                   </div>
                 </Popup>
               </Marker>}
@@ -561,6 +659,7 @@ export default function MapPage() {
         {activePin && (
           <motion.div initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 16, opacity: 0 }}
             className="audio-card absolute z-[1000] text-zinc-800">
+            {debugPlayback && <p className="debug-audio-status mb-2 text-xs font-bold">DEBUG AUDIO PREVIEW - GPS triggers paused</p>}
             <h2 className="mb-4 truncate font-mono text-sm font-normal tracking-wide" title={activePin.name}>{activePin.name}</h2>
             <div className="flex items-start gap-2">
               <button type="button" onClick={toggleAudio} aria-label={isPlaying ? 'Pause audio' : 'Play audio'}

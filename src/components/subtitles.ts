@@ -10,6 +10,10 @@ export type SubtitleTrack = {
   script: string;
   notes: string[];
   cues: SubtitleCue[];
+  contentStatus: 'speech' | 'ambient';
+  timingStatus: 'machine-aligned' | 'not-applicable';
+  reviewStatus: 'needs-human-review' | 'not-applicable';
+  referenceScript: string;
 };
 export type SubtitleSpeaker = { name: string; colorLight: string; colorDark: string };
 export const subtitleSpeakers = config.speakers as Record<string, SubtitleSpeaker>;

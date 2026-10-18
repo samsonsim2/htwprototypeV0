@@ -97,7 +97,7 @@ export default function ConfigurePage() {
                 <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center text-blue-400 font-bold text-sm">
                   {index + 1}
                 </div>
-                <h3 className="text-white font-semibold">{pin.name}</h3>
+                <div><h3 className="text-white font-semibold">{pin.name}</h3><p className="text-xs text-zinc-400 mt-1">{pin.description}</p></div>
               </div>
 
               {/* ✅ Single coord input */}

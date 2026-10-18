@@ -203,3 +203,36 @@ body {
 .map-subtitles { --speaker-accent: var(--speaker-light); border-left: 2px solid var(--speaker-accent); padding-left: 12px; }
 .subtitle-speaker { margin-bottom: 7px; color: var(--speaker-accent); font-size: 11px; font-weight: 700; letter-spacing: .1em; line-height: 1.2; text-transform: uppercase; }
 .dark-map .map-subtitles { --speaker-accent: var(--speaker-dark); }
+
+.leaflet-tooltip.stop-location-label {
+  background: rgba(255,255,255,.94); color: #27272a;
+  border: 1px solid rgba(39,39,42,.15); border-radius: 5px;
+  padding: 3px 7px; font-family: inherit; font-size: 11px; font-weight: 500;
+  box-shadow: 0 1px 4px rgba(0,0,0,.12); pointer-events: none;
+}
+.dark-map .leaflet-tooltip.stop-location-label {
+  background: rgba(24,24,27,.94); color: #e8e6df; border-color: rgba(255,255,255,.2);
+}
+
+.debug-audio-launcher[data-debug-active="true"] {
+  color: #7c2d12; background: #fef3c7; border-color: #d97706;
+}
+.debug-audio-panel {
+  position: fixed;
+  top: auto;
+  bottom: max(125px, calc(env(safe-area-inset-bottom) + 115px));
+  width: 320px;
+  max-height: calc(100dvh - 280px);
+}
+.debug-audio-action {
+  display: flex; min-height: 44px; align-items: center; justify-content: center;
+  gap: 5px; padding: 4px 8px; border-radius: 8px; font-size: 12px;
+  background: rgba(255,255,255,.1); color: #f4f4f5;
+}
+.debug-audio-action:hover { background: rgba(255,255,255,.18); }
+.debug-audio-action:disabled { opacity: .4; cursor: default; }
+.debug-audio-play { background: #fbbf24; color: #18181b; font-weight: 600; }
+.debug-audio-play:hover { background: #fcd34d; }
+.debug-audio-status { color: #92400e; }
+.dark-map .debug-audio-status { color: #fcd34d; }
+.dark-map .debug-audio-launcher[data-debug-active="true"] { color: #fcd34d; background: #422006; border-color: #d97706; }

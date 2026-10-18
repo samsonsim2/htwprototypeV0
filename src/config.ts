@@ -1,23 +1,26 @@
-import audio1 from "./assets/audio/01AngMoKioInt.mp3";
-import audio2 from "./assets/audio/02AngMoKioIntExit.mp3";
-import audio3 from "./assets/audio/03Blk324.mp3";
-import audio4 from "./assets/audio/04Blk209.mp3";
-import audio5 from "./assets/audio/05AngMoKioPrSch.mp3";
-import audio6 from "./assets/audio/06OppBlk244.mp3";
-import audio7 from "./assets/audio/07AftAngMoKioAve1.mp3";
-import audio8 from "./assets/audio/08AftWindsorPkRd.mp3";
-import audio8b from "./assets/audio/08bAftWindsorPkRd.mp3";
-import audio9 from "./assets/audio/09ShunfuEst.mp3";
-import audio10 from "./assets/audio/10OppStTheresasHme.mp3";
-import audio11 from "./assets/audio/11WalktoMacritchie1.mp3";
-import audio12 from "./assets/audio/12WalktoMacritchie2.mp3";
-import audio13 from "./assets/audio/13WalktoMacritchie3.mp3";
-import audio14 from "./assets/audio/14MtAlverniaHosp.mp3";
-import audio14b from "./assets/audio/14bMtAlverniaHosp.mp3";
-import audio15 from "./assets/audio/15OppSporePoloClub.mp3";
-import audio16 from "./assets/audio/16OppNovenaLodge.mp3";
-import audio16b from "./assets/audio/16bOppNovenaLodge.mp3";
-import audio17 from "./assets/audio/17ParishofChristCh.mp3";
+import audio1 from "./assets/audio/v8 01 Ang Mo Kio Int.mp3";
+import audio1b from "./assets/audio/v8 01b Ang Mo Kio Int (Pink Buns).mp3";
+import audio2 from "./assets/audio/v8 02 Ang Mo Kio Int Exit.mp3";
+import audio3 from "./assets/audio/v8 03 Blk 324.mp3";
+import audio4 from "./assets/audio/v8 04 Blk 209.mp3";
+import audio5 from "./assets/audio/v8 05 Ang Mo Kio Pr Sch.mp3";
+import audio6 from "./assets/audio/v8 06 Opp Blk 244.mp3";
+import audio7 from "./assets/audio/v8 07 Aft Ang Mo Kio Ave 1.mp3";
+import audio8 from "./assets/audio/v8 08 Aft Windsor Pk Rd.mp3";
+import audio8b from "./assets/audio/v8 08b Between 8 & 9.mp3";
+import audio9 from "./assets/audio/v8 09 Shunfu Est.mp3";
+import audio10 from "./assets/audio/v8 10 Opp St. Theresa's Hme.mp3";
+import audio10b from "./assets/audio/v8 10b Opp St. Theresa's Hme (Get Off).mp3";
+import audio11 from "./assets/audio/v8 11 Walk to Macritchie 1.mp3";
+import audio11b from "./assets/audio/v8 11 b New Pavillion.mp3";
+import audio12 from "./assets/audio/v8 12 Walk to Macritchie 2.mp3";
+import audio13 from "./assets/audio/v8 13 Walk to Macritchie 3.mp3";
+import audio14 from "./assets/audio/v8 14 Mt Alvernia Hosp.mp3";
+import audio14b from "./assets/audio/v8 14b Between 14&15.mp3";
+import audio15 from "./assets/audio/v8 15 Opp S'pore Polo Club.mp3";
+import audio16 from "./assets/audio/v8 16 Opp Novena Lodge.mp3";
+import audio16b from "./assets/audio/v8 16b Between 16&17.mp3";
+import audio17 from "./assets/audio/v8 17 Parish of Christ Ch.mp3";
 
 export interface LocationPin {
   id: string;
@@ -30,244 +33,259 @@ export interface LocationPin {
   description: string;
 }
 
-export const STORAGE_KEY = "geoguide_pins";
+export const STORAGE_KEY = "geoguide_pins_v8";
 
 export const DEFAULT_PINS: LocationPin[] = [
-   {
-    id: "pin-1",
-    name: "Ang Mo Kio Int",
-    lat: 1.3695976,
-    lng: 103.8484336,
-    radius: 60,
-    audioUrl: audio1,
-    buttonLabel: "Play Audio 1",
-    description: "Stop 1",
+  {
+    "id": "pin-1",
+    "name": "Ang Mo Kio Int",
+    "lat": 1.3695976,
+    "lng": 103.8484336,
+    "radius": 50,
+    "audioUrl": audio1,
+    "buttonLabel": "Play Audio 1",
+    "description": "Stop 1"
   },
   {
-    id: "pin-2",
-    name: "Ang Mo Kio Int Exit",
-    lat: 1.370050598938354,
-    lng: 103.84907773928799,
-    radius: 25,
-    audioUrl: audio2,
-    buttonLabel: "Play Audio 2",
-    description: "Stop 2",
+    "id": "pin-1b",
+    "name": "Ang Mo Kio Int (pink buns)",
+    "lat": 1.3698,
+    "lng": 103.84865,
+    "radius": 25,
+    "audioUrl": audio1b,
+    "buttonLabel": "Play Audio 1b",
+    "description": "Stop 1b. Temporary nearby coordinates; confirm after testing. Provisional 25 m radius; workbook radius is TBC."
   },
   {
-    id: "pin-3",
-    name: "Blk 324",
-    lat: 1.369087795889759,
-    lng: 103.84660152883492,
-    radius: 50,
-    audioUrl: audio3,
-    buttonLabel: "Play Audio 3",
-    description: "Stop 3",
+    "id": "pin-2",
+    "name": "Ang Mo Kio Int Exit",
+    "lat": 1.3701357899933377,
+    "lng": 103.849204573653,
+    "radius": 25,
+    "audioUrl": audio2,
+    "buttonLabel": "Play Audio 2",
+    "description": "Stop 2"
   },
   {
-    id: "pin-4",
-    name: "Blk 209",
-    lat: 1.3693759060776907,
-    lng: 103.84321244576203,
-    radius: 50,
-    audioUrl: audio4,
-    buttonLabel: "Play Audio 4",
-    description: "Stop 4",
+    "id": "pin-3",
+    "name": "Blk 324",
+    "lat": 1.369087795889759,
+    "lng": 103.84660152883492,
+    "radius": 50,
+    "audioUrl": audio3,
+    "buttonLabel": "Play Audio 3",
+    "description": "Stop 3"
   },
   {
-    id: "pin-5",
-    name: "Ang Mo Kio Pr Sch",
-    lat: 1.369841965569264,
-    lng: 103.8399457253944,
-    radius: 50,
-    audioUrl: audio5,
-    buttonLabel: "Play Audio 5",
-    description: "Stop 5",
+    "id": "pin-4",
+    "name": "Blk 209",
+    "lat": 1.3693759060776907,
+    "lng": 103.84321244576203,
+    "radius": 50,
+    "audioUrl": audio4,
+    "buttonLabel": "Play Audio 4",
+    "description": "Stop 4"
   },
   {
-    id: "pin-6",
-    name: "Opp Blk 244",
-    lat: 1.3670701595812227,
-    lng: 103.834052996558,
-    radius: 50,
-    audioUrl: audio6,
-    buttonLabel: "Play Audio 6",
-    description: "Stop 6",
+    "id": "pin-5",
+    "name": "Ang Mo Kio Pr Sch",
+    "lat": 1.369841965569264,
+    "lng": 103.8399457253944,
+    "radius": 50,
+    "audioUrl": audio5,
+    "buttonLabel": "Play Audio 5",
+    "description": "Stop 5"
   },
   {
-    id: "pin-7",
-    name: "Aft Ang Mo Kio Ave 1",
-    lat: 1.366766885384622,
-    lng: 103.82846218306724,
-    radius: 50,
-    audioUrl: audio7,
-    buttonLabel: "Play Audio 7",
-    description: "Stop 7",
+    "id": "pin-6",
+    "name": "Opp Blk 244",
+    "lat": 1.3670701595812227,
+    "lng": 103.834052996558,
+    "radius": 50,
+    "audioUrl": audio6,
+    "buttonLabel": "Play Audio 6",
+    "description": "Stop 6"
   },
   {
-    id: "pin-8",
-    name: "Aft Windsor Pk Rd",
-    lat: 1.357917885984446,
-    lng: 103.82892908121242,
-    radius: 50,
-    audioUrl: audio8,
-    buttonLabel: "Play Audio 8",
-    description: "Stop 8",
+    "id": "pin-7",
+    "name": "Aft Ang Mo Kio Ave 1",
+    "lat": 1.366766885384622,
+    "lng": 103.82846218306724,
+    "radius": 50,
+    "audioUrl": audio7,
+    "buttonLabel": "Play Audio 7",
+    "description": "Stop 7"
   },
   {
-    id: "pin-8b",
-    name: "Between 8 & 9",
-    lat: 1.3547091471514277,
-    lng: 103.83295984751881,
-    radius: 50,
-    audioUrl: audio8b,
-    buttonLabel: "Play Audio 8b",
-    description: "Transition Stop",
+    "id": "pin-8",
+    "name": "Aft Windsor Pk Rd",
+    "lat": 1.357917885984446,
+    "lng": 103.82892908121242,
+    "radius": 50,
+    "audioUrl": audio8,
+    "buttonLabel": "Play Audio 8",
+    "description": "Stop 8"
   },
   {
-    id: "pin-9",
-    name: "Shunfu Est",
-    lat: 1.3493130,
-    lng: 103.8373344,
-    radius: 50,
-    audioUrl: audio9,
-    buttonLabel: "Play Audio 9",
-    description: "Stop 9",
+    "id": "pin-8b",
+    "name": "Between 8 & 9",
+    "lat": 1.3547091471514277,
+    "lng": 103.83295984751881,
+    "radius": 50,
+    "audioUrl": audio8b,
+    "buttonLabel": "Play Audio 8b",
+    "description": "Stop 8b. Provisional 50 m radius; workbook radius is blank."
   },
   {
-    id: "pin-10",
-    name: "Opp St. Theresa's Hme",
-    lat: 1.3466195,
-    lng: 103.8387347,
-    radius: 45,
-    audioUrl: audio10,
-    buttonLabel: "Play Audio 10",
-    description: "Stop 10",
+    "id": "pin-9",
+    "name": "Shunfu Est",
+    "lat": 1.349313,
+    "lng": 103.8373344,
+    "radius": 50,
+    "audioUrl": audio9,
+    "buttonLabel": "Play Audio 9",
+    "description": "Stop 9"
   },
   {
-    id: "pin-11",
-    name: "Walk to Macritchie 1",
-    lat: 1.3459472,
-    lng: 103.8388217,
-    radius: 25,
-    audioUrl: audio11,
-    buttonLabel: "Play Audio 11",
-    description: "Stop 11",
+    "id": "pin-10",
+    "name": "Opp St. Theresa's Hme",
+    "lat": 1.3463879469333586,
+    "lng": 103.83875931229656,
+    "radius": 60,
+    "audioUrl": audio10,
+    "buttonLabel": "Play Audio 10",
+    "description": "Stop 10"
   },
   {
-    id: "pin-12",
-    name: "Walk to Macritchie 2",
-    lat: 1.3455313814691061,
-    lng: 103.83641533873757,
-    radius: 50,
-    audioUrl: audio12,
-    buttonLabel: "Play Audio 12",
-    description: "Stop 12",
+    "id": "pin-10b",
+    "name": "Opp St. Theresa's Hme (Get off)",
+    "lat": 1.3463879469333586,
+    "lng": 103.83875931229656,
+    "radius": 60,
+    "audioUrl": audio10b,
+    "buttonLabel": "Play Audio 10b",
+    "description": "Stop 10b"
   },
   {
-    id: "pin-13",
-    name: "Walk to Macritchie 3",
-    lat: 1.343477669418711,
-    lng: 103.83558584711426,
-    radius: 50,
-    audioUrl: audio13,
-    buttonLabel: "Play Audio 13",
-    description: "Stop 13",
+    "id": "pin-11",
+    "name": "Walk to Macritchie 1",
+    "lat": 1.345955,
+    "lng": 103.837653,
+    "radius": 50,
+    "audioUrl": audio11,
+    "buttonLabel": "Play Audio 11",
+    "description": "Stop 11"
   },
   {
-    id: "pin-14",
-    name: "Mt Alvernia Hosp",
-    lat: 1.3412381142448144,
-    lng: 103.83664695336662,
-    radius: 50,
-    audioUrl: audio14,
-    buttonLabel: "Play Audio 14",
-    description: "Stop 14",
+    "id": "pin-11b",
+    "name": "New Pavillion",
+    "lat": 1.34575,
+    "lng": 103.8371,
+    "radius": 25,
+    "audioUrl": audio11b,
+    "buttonLabel": "Play Audio 11b",
+    "description": "Stop 11b. Temporary nearby coordinates; confirm after testing. Provisional 25 m radius; workbook radius is TBC."
   },
   {
-    id: "pin-14b",
-    name: "Between 14 & 15",
-    lat: 1.3370232780936842,
-    lng: 103.83746806717761,
-    radius: 50,
-    audioUrl: audio14b,
-    buttonLabel: "Play Audio 14b",
-    description: "Transition Stop",
+    "id": "pin-12",
+    "name": "Walk to Macritchie 2",
+    "lat": 1.3455313814691061,
+    "lng": 103.83641533873757,
+    "radius": 50,
+    "audioUrl": audio12,
+    "buttonLabel": "Play Audio 12",
+    "description": "Stop 12"
   },
   {
-    id: "pin-15",
-    name: "Opp S'pore Polo Club",
-    lat: 1.3318450399118509,
-    lng: 103.8389047763409,
-    radius: 50,
-    audioUrl: audio15,
-    buttonLabel: "Play Audio 15",
-    description: "Stop 15",
+    "id": "pin-13",
+    "name": "Walk to Macritchie 3",
+    "lat": 1.343477669418711,
+    "lng": 103.83558584711426,
+    "radius": 50,
+    "audioUrl": audio13,
+    "buttonLabel": "Play Audio 13",
+    "description": "Stop 13"
   },
   {
-    id: "pin-16",
-    name: "Opp Novena Lodge",
-    lat: 1.3236401441148236,
-    lng: 103.84185833888529,
-    radius: 50,
-    audioUrl: audio16,
-    buttonLabel: "Play Audio 16",
-    description: "Stop 16",
+    "id": "pin-14",
+    "name": "Mt Alvernia Hosp",
+    "lat": 1.3412381142448144,
+    "lng": 103.83664695336662,
+    "radius": 50,
+    "audioUrl": audio14,
+    "buttonLabel": "Play Audio 14",
+    "description": "Stop 14"
   },
   {
-    id: "pin-16b",
-    name: "Between 16 & 17",
-    lat: 1.3164912748918802,
-    lng: 103.84482170757835,
-    radius: 50,
-    audioUrl: audio16b,
-    buttonLabel: "Play Audio 16b",
-    description: "Transition Stop",
+    "id": "pin-14b",
+    "name": "Between 14&15",
+    "lat": 1.3370232780936842,
+    "lng": 103.83746806717761,
+    "radius": 50,
+    "audioUrl": audio14b,
+    "buttonLabel": "Play Audio 14b",
+    "description": "Stop 14b. Provisional 50 m radius; workbook radius is blank."
   },
   {
-    id: "pin-17",
-    name: "Parish of Christ Ch",
-    lat: 1.3119184308486453,
-    lng: 103.8472393237936,
-    radius: 50,
-    audioUrl: audio17,
-    buttonLabel: "Play Audio 17",
-    description: "Stop 17",
+    "id": "pin-15",
+    "name": "Opp S'pore Polo Club",
+    "lat": 1.3318450399118509,
+    "lng": 103.8389047763409,
+    "radius": 50,
+    "audioUrl": audio15,
+    "buttonLabel": "Play Audio 15",
+    "description": "Stop 15"
   },
+  {
+    "id": "pin-16",
+    "name": "Opp Novena Lodge",
+    "lat": 1.3236401441148236,
+    "lng": 103.84185833888529,
+    "radius": 50,
+    "audioUrl": audio16,
+    "buttonLabel": "Play Audio 16",
+    "description": "Stop 16"
+  },
+  {
+    "id": "pin-16b",
+    "name": "Between 16&17",
+    "lat": 1.3164912748918802,
+    "lng": 103.84482170757835,
+    "radius": 50,
+    "audioUrl": audio16b,
+    "buttonLabel": "Play Audio 16b",
+    "description": "Stop 16b"
+  },
+  {
+    "id": "pin-17",
+    "name": "Parish of Christ Ch",
+    "lat": 1.3119184308486453,
+    "lng": 103.8472393237936,
+    "radius": 50,
+    "audioUrl": audio17,
+    "buttonLabel": "Play Audio 17",
+    "description": "Stop 17"
+  }
 ];
 
 export const getStoredPins = (): LocationPin[] => {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored) {
-    try {
-      const parsed: LocationPin[] = JSON.parse(stored);
-
-      const isOldVersion =
-        parsed.some(
-          (pin) =>
-            pin.radius === undefined ||
-            pin.audioUrl.includes("soundhelix.com") ||
-            pin.audioUrl.includes("audio1.mp3") ||
-            pin.audioUrl === "/01AmkInt.mp3",
-        );
-
-      if (isOldVersion) {
-        localStorage.removeItem(STORAGE_KEY);
-        return DEFAULT_PINS;
-      }
-
-      return parsed;
-    } catch (e) {
-      console.error("Failed to parse stored pins", e);
-    }
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return DEFAULT_PINS;
+    const parsed: LocationPin[] = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return DEFAULT_PINS;
+    // Resolve current build URLs instead of stale saved asset hashes.
+    return DEFAULT_PINS.map(defaultPin => {
+      const saved = parsed.find(pin => pin.id === defaultPin.id);
+      if (!saved || !Number.isFinite(saved.lat) || !Number.isFinite(saved.lng) || !Number.isFinite(saved.radius) || saved.radius <= 0) return defaultPin;
+      const radius = (defaultPin.id === 'pin-1b' || defaultPin.id === 'pin-11b') && saved.radius === 50
+        ? 25 : saved.radius;
+      return { ...defaultPin, ...saved, radius, audioUrl: defaultPin.audioUrl, description: defaultPin.description };
+    });
+  } catch (error) {
+    console.error("Failed to read stored pins", error);
+    return DEFAULT_PINS;
   }
-
-  return DEFAULT_PINS;
 };
-
-export const savePins = (pins: LocationPin[]) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(pins));
-};
-
-export const resetPins = () => {
-  localStorage.removeItem(STORAGE_KEY);
-};
+export const savePins = (pins: LocationPin[]) => localStorage.setItem(STORAGE_KEY, JSON.stringify(pins));
+export const resetPins = () => localStorage.removeItem(STORAGE_KEY);
