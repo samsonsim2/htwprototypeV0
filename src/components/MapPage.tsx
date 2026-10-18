@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   MapContainer,
   TileLayer,
@@ -19,6 +20,26 @@ import MapSubtitles from './MapSubtitles';
 import JourneyOpening from './JourneyOpening';
 import usePlaybackField from './usePlaybackField';
 import FieldDebugPanel, { DEFAULT_FIELD_SETTINGS } from './FieldDebugPanel';
+import type { EncounterKind } from './ar/characters';
+import { launchGroundAR, type GroundARLaunch } from './ar/session';
+import { launchHandCamera, type HandCameraLaunch } from './ar/handCamera';
+
+const ARExperience = React.lazy(() => import('./ARExperience'));
+const HandARExperience = React.lazy(() => import('./HandARExperience'));
+const groundEncounters: Record<string, EncounterKind> = { 'pin-1': 'mynas', 'pin-1b': 'bun', 'pin-6': 'rubber-tree' };
+const encounterLabels: Record<string, string> = { 'pin-1': 'Meet the mynas in AR', 'pin-1b': 'Find the pink bun in AR', 'pin-6': 'Tap a rubber tree in AR', 'pin-4': 'Try the hand filter in AR' };
+
+class ARLoadBoundary extends React.Component<{ onClose: () => void; launch: { dispose: () => Promise<void> }; children: React.ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch() { void this.props.launch.dispose().catch(() => {}); }
+  render() {
+    return this.state.failed ? createPortal(<div className="ar-loading" role="dialog" aria-modal="true" aria-label="AR unavailable">
+      <p>AR could not load. Refresh the app to try again.</p>
+      <button type="button" className="ar-capsule" onClick={this.props.onClose}>Back to map</button>
+    </div>, document.body) : this.props.children;
+  }
+}
 
 const makeDotIcon = (colour: string, size = 10) => L.divIcon({
   className: 'soft-location-marker',
@@ -201,6 +222,12 @@ export default function MapPage() {
   const [showMarkers, setShowMarkers] = useState(true);
   const [showLocationNames, setShowLocationNames] = useState(false);
   const [debugPlayback, setDebugPlayback] = useState(false);
+  const [arScene, setArScene] = useState<{ kind: EncounterKind; trackId: string; audioUrl: string; launch: GroundARLaunch } | null>(null);
+  const [handScene, setHandScene] = useState<{ trackId: string; audioUrl: string; launch: HandCameraLaunch } | null>(null);
+  const handLaunchRef = useRef<HandCameraLaunch | null>(null);
+  const arLaunchRef = useRef<GroundARLaunch | null>(null);
+  useEffect(() => () => { void arLaunchRef.current?.dispose().catch(() => {}); void handLaunchRef.current?.dispose(); }, []);
+  const arOpenRef = useRef(false);
   const debugPlaybackRef = useRef(false);
   const playbackRequestRef = useRef(0);
   const [debugPinId, setDebugPinId] = useState(pins[0]?.id ?? '');
@@ -403,7 +430,7 @@ export default function MapPage() {
   };
 
   useEffect(() => {
-    if (debugPlaybackRef.current || !userPos || !hasStarted || !audioRef.current) return;
+    if (debugPlaybackRef.current || arOpenRef.current || !userPos || !hasStarted || !audioRef.current) return;
     if (isSwitchingRef.current) return;
 
     const closestPin = getClosestPinInRange(userPos);
@@ -418,7 +445,7 @@ export default function MapPage() {
     }
 
     switchTimeoutRef.current = window.setTimeout(() => {
-      if (!debugPlaybackRef.current) void switchToPinAudio(closestPin);
+      if (!debugPlaybackRef.current && !arOpenRef.current) void switchToPinAudio(closestPin);
     }, 500);
 
     return () => {
@@ -426,7 +453,7 @@ export default function MapPage() {
         window.clearTimeout(switchTimeoutRef.current);
       }
     };
-  }, [userPos, hasStarted, activePin, debugPlayback]);
+  }, [userPos, hasStarted, activePin, debugPlayback, arScene, handScene]);
 
   useEffect(() => {
     return () => {
@@ -495,6 +522,53 @@ export default function MapPage() {
     setDebugPlayback(false);
   };
 
+  const openAR = () => {
+    if (!activePin || !encounterLabels[activePin.id] || isSwitchingRef.current || arOpenRef.current) return;
+    if (activePin.id === 'pin-4') {
+      const launch = launchHandCamera();
+      handLaunchRef.current = launch; arOpenRef.current = true;
+      if (switchTimeoutRef.current) window.clearTimeout(switchTimeoutRef.current);
+      switchTimeoutRef.current = null;
+      setHandScene({ trackId: activePin.id, audioUrl: activePin.audioUrl, launch });
+      return;
+    }
+    const launch = launchGroundAR();
+    arLaunchRef.current = launch;
+    arOpenRef.current = true;
+    if (switchTimeoutRef.current) window.clearTimeout(switchTimeoutRef.current);
+    switchTimeoutRef.current = null;
+    setArScene({ kind: groundEncounters[activePin.id], trackId: activePin.id, audioUrl: activePin.audioUrl, launch });
+  };
+
+  const closeHandAR = () => {
+    void handLaunchRef.current?.dispose(); handLaunchRef.current = null;
+    arOpenRef.current = false; setHandScene(null);
+  };
+  const retryHandAR = () => {
+    if (!handScene) return;
+    void handLaunchRef.current?.dispose();
+    const launch = launchHandCamera(); handLaunchRef.current = launch;
+    setHandScene({ ...handScene, launch });
+  };
+
+  const closeAR = async () => {
+    const launch = arLaunchRef.current;
+    if (!launch) return;
+    await launch.dispose();
+    if (arLaunchRef.current !== launch) return;
+    arLaunchRef.current = null;
+    arOpenRef.current = false;
+    setArScene(null);
+  };
+
+  const retryAR = () => {
+    if (!arScene) return;
+    const launch = launchGroundAR();
+    void arLaunchRef.current?.dispose().catch(() => {});
+    arLaunchRef.current = launch;
+    setArScene({ ...arScene, launch });
+  };
+
   const seekDebugAudio = (seconds: number) => {
     const audio = audioRef.current;
     if (!debugPlaybackRef.current || !audio || !Number.isFinite(audio.duration)) return;
@@ -542,7 +616,7 @@ export default function MapPage() {
   };
 
   return (
-    <div className={`relative w-full h-full bg-zinc-950${darkMap ? " dark-map" : ""}${showOpening ? " opening-active" : ""}`}>
+    <div inert={!!arScene || !!handScene} className={`relative w-full h-full bg-zinc-950${darkMap ? " dark-map" : ""}${showOpening ? " opening-active" : ""}`}>
       <div hidden={showOpening} className="map-header absolute top-0 left-0 right-0 z-[1000] pointer-events-none">
         <div className="map-header-row">
           <div className="map-toolbar">
@@ -659,6 +733,9 @@ export default function MapPage() {
         {activePin && (
           <motion.div initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 16, opacity: 0 }}
             className="audio-card absolute z-[1000] text-zinc-800">
+            {encounterLabels[activePin.id] && <button type="button" className="journey-ar-launch" onClick={openAR}>
+              {encounterLabels[activePin.id]}
+            </button>}
             {debugPlayback && <p className="debug-audio-status mb-2 text-xs font-bold">DEBUG AUDIO PREVIEW - GPS triggers paused</p>}
             <h2 className="mb-4 truncate font-mono text-sm font-normal tracking-wide" title={activePin.name}>{activePin.name}</h2>
             <div className="flex items-start gap-2">
@@ -681,6 +758,16 @@ export default function MapPage() {
           </motion.div>
         )}
       </AnimatePresence>
+      {arScene && <ARLoadBoundary key={arScene.launch.id} launch={arScene.launch} onClose={closeAR}><React.Suspense fallback={createPortal(<div className="ar-loading" role="dialog" aria-modal="true" aria-label="Loading AR"><p>Opening ground tracking…</p><button type="button" className="ar-capsule" onClick={closeAR}>Back to map</button></div>, arScene.launch.overlayRoot)}>
+        <ARExperience kind={arScene.kind} launch={arScene.launch} trackId={arScene.trackId} audioUrl={arScene.audioUrl}
+          audioRef={audioRef} playing={isPlaying} onToggleAudio={toggleAudio} onClose={closeAR} onRetry={retryAR} />
+      </React.Suspense></ARLoadBoundary>}
+      {handScene && <ARLoadBoundary key={`hand-${handScene.launch.id}`} launch={handScene.launch} onClose={closeHandAR}>
+        <React.Suspense fallback={createPortal(<div className="ar-loading" role="dialog" aria-modal="true" aria-label="Loading hand AR"><p>Opening hand filter…</p><button type="button" className="ar-capsule" onClick={closeHandAR}>Back to map</button></div>, handScene.launch.overlayRoot)}>
+          <HandARExperience launch={handScene.launch} trackId={handScene.trackId} audioUrl={handScene.audioUrl} audioRef={audioRef}
+            playing={isPlaying} onToggleAudio={toggleAudio} onClose={closeHandAR} onRetry={retryHandAR} />
+        </React.Suspense>
+      </ARLoadBoundary>}
       <audio
         ref={audioRef}
         onEnded={() => setIsPlaying(false)}
