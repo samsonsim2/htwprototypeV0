@@ -215,24 +215,48 @@ body {
 }
 
 .debug-audio-launcher[data-debug-active="true"] {
-  color: #7c2d12; background: #fef3c7; border-color: #d97706;
+  color: #111; background: #e7e7e5; border-color: #555;
 }
 .debug-audio-panel {
-  position: fixed;
-  top: auto;
-  bottom: max(125px, calc(env(safe-area-inset-bottom) + 115px));
-  width: 320px;
-  max-height: calc(100dvh - 280px);
+  --preview-bg: #f0f0ee;
+  --preview-surface: rgba(240,240,238,.22);
+  --preview-ink: #242424;
+  --preview-muted: #686865;
+  --preview-border: rgba(36,36,36,.18);
+  position: absolute; top: max(72px, calc(100dvh - env(safe-area-inset-bottom) - 327px));
+  left: 50%; right: auto; bottom: auto;
+  transform: translateX(-50%);
+  width: 320px; max-height: none; overflow: visible;
+  padding: 10px 14px 8px; border: 1px solid var(--preview-border);
+  border-radius: 12px; background: var(--preview-surface); color: var(--preview-ink);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 22px rgba(0,0,0,.08);
 }
-.debug-audio-action {
-  display: flex; min-height: 44px; align-items: center; justify-content: center;
-  gap: 5px; padding: 4px 8px; border-radius: 8px; font-size: 12px;
-  background: rgba(255,255,255,.1); color: #f4f4f5;
-}
-.debug-audio-action:hover { background: rgba(255,255,255,.18); }
+.debug-audio-heading { display: flex; align-items: center; justify-content: space-between; height: 28px; }
+.debug-audio-heading h2 { margin: 0; font-size: 11px; font-weight: 700; letter-spacing: .04em; }
+.debug-audio-close { display: flex; width: 32px; height: 32px; align-items: center; justify-content: center; margin-right: -8px; }
+.debug-audio-meta { display: flex; justify-content: space-between; gap: 8px; color: var(--preview-muted); font-size: 10px; margin: 2px 0 5px; }
+.debug-audio-select { width: 100%; height: 38px; padding: 0 6px; background: transparent; color: inherit; border: 1px solid var(--preview-border); border-radius: 5px; font: inherit; font-size: 13px; }
+.debug-audio-select option { color: var(--preview-ink); background: var(--preview-bg); }
+.debug-audio-timeline { padding-top: 6px; }
+.debug-audio-timeline input { display: block; width: 100%; height: 24px; margin: 0; accent-color: var(--preview-ink); cursor: pointer; }
+.debug-audio-times { display: flex; justify-content: space-between; font-family: monospace; font-size: 10px; font-variant-numeric: tabular-nums; color: var(--preview-muted); }
+.debug-audio-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+.debug-audio-action { display: flex; width: 44px; height: 44px; align-items: center; justify-content: center; border-radius: 50%; color: inherit; background: transparent; font-size: 11px; }
+.debug-audio-action:hover, .debug-audio-close:hover { background: var(--preview-border); }
 .debug-audio-action:disabled { opacity: .4; cursor: default; }
-.debug-audio-play { background: #fbbf24; color: #18181b; font-weight: 600; }
-.debug-audio-play:hover { background: #fcd34d; }
-.debug-audio-status { color: #92400e; }
-.dark-map .debug-audio-status { color: #fcd34d; }
-.dark-map .debug-audio-launcher[data-debug-active="true"] { color: #fcd34d; background: #422006; border-color: #d97706; }
+.debug-audio-play { background: var(--preview-ink); color: var(--preview-bg); }
+.debug-audio-play:hover { background: var(--preview-muted); }
+.debug-audio-exit { text-decoration: underline; text-underline-offset: 3px; }
+.debug-audio-panel :focus-visible { outline: 2px solid var(--preview-muted); outline-offset: 2px; }
+.debug-audio-status { color: #686865; font-size: 10px; font-weight: 400; letter-spacing: .03em; }
+.dark-map .debug-audio-panel { --preview-bg: #191919; --preview-surface: rgba(25,25,25,.22); --preview-ink: #e8e6df; --preview-muted: #b6b4af; --preview-border: rgba(232,230,223,.2); }
+.dark-map .debug-audio-status { color: #b6b4af; }
+.dark-map .debug-audio-launcher[data-debug-active="true"] { color: #e8e6df; background: #292929; border-color: #b6b4af; }
+@media (max-width: 767px), (hover: none) and (pointer: coarse) {
+  .debug-audio-panel {
+    top: 50dvh; left: 50%; right: auto; bottom: auto;
+    transform: translate(-50%, -50%);
+  }
+}

@@ -47,40 +47,38 @@ export default function DebugAudioPanel(props: Props) {
       <span className="text-[8px] font-bold leading-3 tracking-wide">DEBUG</span>
     </button>
     {expanded && <section id="debug-audio-panel" aria-label="Debug audio preview controls"
-      className="map-debug-popover debug-audio-panel rounded-xl border border-amber-400/50 bg-zinc-950/95 p-3 shadow-lg backdrop-blur-md">
-      <div className="mb-1 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-bold text-amber-300">DEBUG · Audio preview</h2>
-        <button type="button" aria-label="Collapse debug audio controls" onClick={() => setExpanded(false)} className="flex h-8 w-8 items-center justify-center rounded hover:bg-white/10"><X size={17} /></button>
+      className="map-debug-popover debug-audio-panel">
+      <div className="debug-audio-heading">
+        <h2>DEBUG / Audio preview</h2>
+        <button type="button" aria-label="Collapse debug audio controls" title="Collapse controls" onClick={() => setExpanded(false)} className="debug-audio-close"><X size={16} /></button>
       </div>
-      <p className="mb-3 text-xs text-zinc-300">Test subtitles and particles anywhere. GPS triggers are paused.</p>
-      <label className="block text-xs" htmlFor="debug-stop-select">Stop {index + 1} of {props.pins.length}</label>
+      <div className="debug-audio-meta">
+        <label htmlFor="debug-stop-select">Stop {index + 1} / {props.pins.length}</label>
+        <span>{track?.contentStatus === 'ambient' ? 'Ambient · GPS paused' : 'GPS triggers paused'}</span>
+      </div>
       <select id="debug-stop-select" value={pin?.id ?? ''} disabled={!pin}
         onChange={event => props.onPreview(event.target.value)}
-        className="mt-1 min-h-11 w-full rounded-lg border border-white/20 bg-zinc-900 px-2 text-sm text-white">
+        className="debug-audio-select">
         {props.pins.map(item => <option key={item.id} value={item.id}>{item.id.replace('pin-', '')} · {item.name}</option>)}
       </select>
-      <div className="my-3 grid grid-cols-3 gap-2">
-        <button type="button" aria-label="Debug previous stop" disabled={!pin} onClick={() => cycle(-1)} className="debug-audio-action"><SkipBack size={16} />Previous</button>
-        <button type="button" disabled={!pin} onClick={() => selectedIsActive ? props.onTogglePlayback() : props.onPreview(pin.id)}
-          aria-label={isPlaying ? 'Debug pause audio' : 'Debug play selected stop'} className="debug-audio-action debug-audio-play">
-          {isPlaying ? <Pause size={16} /> : <Play size={16} />}{isPlaying ? 'Pause' : 'Play'}
-        </button>
-        <button type="button" aria-label="Debug next stop" disabled={!pin} onClick={() => cycle(1)} className="debug-audio-action"><SkipForward size={16} />Next</button>
-      </div>
-      <label className="block text-xs text-zinc-300">
-        Seek through this recording
+      <div className="debug-audio-timeline">
         <input type="range" aria-label="Debug seek position" min={0} max={props.duration || 1} step={0.1}
           value={selectedIsActive ? Math.min(props.elapsed, props.duration || 0) : 0}
           disabled={!selectedIsActive || props.duration <= 0}
-          onChange={event => props.onSeek(Number(event.target.value))} className="mt-1 h-6 w-full accent-amber-400" />
-      </label>
-      <div className="mb-2 flex justify-between font-mono text-xs text-zinc-300">
+          onChange={event => props.onSeek(Number(event.target.value))} />
+      <div className="debug-audio-times">
         <span>{time(selectedIsActive ? props.elapsed : 0)}</span><span>{time(selectedIsActive ? props.duration : track?.duration ?? 0)}</span>
       </div>
-      {track?.contentStatus === 'ambient' && <p className="mb-2 text-xs text-amber-200">Ambient track · no spoken subtitles</p>}
-      <div className="flex items-center justify-between gap-2 border-t border-white/10 pt-2">
-        <button type="button" disabled={!pin} onClick={() => props.onPreview(pin.id)} className="debug-audio-action"><RotateCcw size={14} />Restart</button>
-        <button type="button" onClick={() => { props.onExit(); setExpanded(false); }} className="min-h-11 rounded-lg px-2 text-xs font-semibold text-amber-300 underline underline-offset-2">Exit debugging</button>
+      </div>
+      <div className="debug-audio-controls">
+        <button type="button" aria-label="Restart" title="Restart track" disabled={!pin} onClick={() => props.onPreview(pin.id)} className="debug-audio-action"><RotateCcw size={16} /></button>
+        <button type="button" aria-label="Debug previous stop" title="Previous stop" disabled={!pin} onClick={() => cycle(-1)} className="debug-audio-action"><SkipBack size={18} /></button>
+        <button type="button" disabled={!pin} onClick={() => selectedIsActive ? props.onTogglePlayback() : props.onPreview(pin.id)}
+          title={isPlaying ? 'Pause' : 'Play'} aria-label={isPlaying ? 'Debug pause audio' : 'Debug play selected stop'} className="debug-audio-action debug-audio-play">
+          {isPlaying ? <Pause size={18} /> : <Play size={18} />}
+        </button>
+        <button type="button" aria-label="Debug next stop" title="Next stop" disabled={!pin} onClick={() => cycle(1)} className="debug-audio-action"><SkipForward size={18} /></button>
+        <button type="button" aria-label="Exit debugging" onClick={() => { props.onExit(); setExpanded(false); }} className="debug-audio-action debug-audio-exit">Exit</button>
       </div>
     </section>}
   </aside>;
