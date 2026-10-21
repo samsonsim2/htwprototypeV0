@@ -49,12 +49,12 @@ export const DEFAULT_PINS: LocationPin[] = [
   {
     "id": "pin-1b",
     "name": "Ang Mo Kio Int (pink buns)",
-    "lat": 1.3698,
-    "lng": 103.84865,
-    "radius": 25,
+    "lat": 1.3699312777958694,
+    "lng": 103.84891160366486,
+    "radius": 2,
     "audioUrl": audio1b,
     "buttonLabel": "Play Audio 1b",
-    "description": "Stop 1b. Temporary nearby coordinates; confirm after testing. Provisional 25 m radius; workbook radius is TBC."
+    "description": "Stop 1b. Temporary nearby coordinates; confirm after testing. Geofence radius: 2 m."
   },
   {
     "id": "pin-2",
@@ -181,10 +181,10 @@ export const DEFAULT_PINS: LocationPin[] = [
     "name": "New Pavillion",
     "lat": 1.34575,
     "lng": 103.8371,
-    "radius": 25,
+    "radius": 2,
     "audioUrl": audio11b,
     "buttonLabel": "Play Audio 11b",
-    "description": "Stop 11b. Temporary nearby coordinates; confirm after testing. Provisional 25 m radius; workbook radius is TBC."
+    "description": "Stop 11b. Temporary nearby coordinates; confirm after testing. Geofence radius: 2 m."
   },
   {
     "id": "pin-12",
@@ -278,9 +278,12 @@ export const getStoredPins = (): LocationPin[] => {
     return DEFAULT_PINS.map(defaultPin => {
       const saved = parsed.find(pin => pin.id === defaultPin.id);
       if (!saved || !Number.isFinite(saved.lat) || !Number.isFinite(saved.lng) || !Number.isFinite(saved.radius) || saved.radius <= 0) return defaultPin;
-      const radius = (defaultPin.id === 'pin-1b' || defaultPin.id === 'pin-11b') && saved.radius === 50
-        ? 25 : saved.radius;
-      return { ...defaultPin, ...saved, radius, audioUrl: defaultPin.audioUrl, description: defaultPin.description };
+      const radius = (defaultPin.id === 'pin-1b' || defaultPin.id === 'pin-11b') && (saved.radius === 50 || saved.radius === 25)
+        ? 2 : saved.radius;
+      // Migrate the old Pink Buns placeholder without overwriting custom positions.
+      const position = defaultPin.id === 'pin-1b' && saved.lat === 1.3698 && saved.lng === 103.84865
+        ? { lat: defaultPin.lat, lng: defaultPin.lng } : {};
+      return { ...defaultPin, ...saved, ...position, radius, audioUrl: defaultPin.audioUrl, description: defaultPin.description };
     });
   } catch (error) {
     console.error("Failed to read stored pins", error);

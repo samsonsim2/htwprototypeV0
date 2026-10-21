@@ -1,20 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import {
   MapContainer,
   TileLayer,
   Marker,
   Popup,
-  Tooltip,
   useMap,
-  Circle,
 } from 'react-leaflet';
 import L from 'leaflet';
 import { Navigation, Play, Pause, Settings, Layers, Moon, Sun } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { getStoredPins, LocationPin } from '../config';
+import { journeyPins, walkingPath, isWalkingStop, WALKING_STOP_IDS, nearWalkingPath, backOnBusPath } from '../journeyRoutes';
 import MagneticField from './MagneticField';
+import MapDebugOverlays from './MapDebugOverlays';
 import DebugAudioPanel from './DebugAudioPanel';
 import MapSubtitles from './MapSubtitles';
 import JourneyOpening from './JourneyOpening';
@@ -41,12 +41,14 @@ class ARLoadBoundary extends React.Component<{ onClose: () => void; launch: { di
   }
 }
 
-const makeDotIcon = (colour: string, size = 10) => L.divIcon({
+const makeDotIcon = (colour: string, size = 10, pulseIndex = -1) => L.divIcon({
   className: 'soft-location-marker',
-  html: `<span class="soft-location-dot" style="width:${size}px;height:${size}px;left:${(28 - size) / 2}px;top:${(28 - size) / 2}px;background:${colour};box-shadow:0 0 ${size * 0.4}px ${size * 0.2}px ${colour}99;filter:blur(${size * 0.08}px)"></span>`,
+  html: `<span class="soft-location-dot${pulseIndex >= 0 ? ' walking-pin-pulse' : ''}" style="animation-delay:${pulseIndex * 0.45}s;width:${size}px;height:${size}px;left:${(28 - size) / 2}px;top:${(28 - size) / 2}px;background:${colour};box-shadow:0 0 ${size * 0.4}px ${size * 0.2}px ${colour.slice(0, 7)}99;filter:blur(${size * 0.08}px)"></span>`,
   iconSize: [28, 28], iconAnchor: [14, 14], popupAnchor: [0, -8],
 });
 const pinIcon = makeDotIcon('#FF8A3D', 5);
+const inactivePinIcon = makeDotIcon('#2D4A36F5', 5);
+const walkingPinIcons = WALKING_STOP_IDS.map((_, i) => makeDotIcon('#FF8A3D', 5, i));
 const userIcon = makeDotIcon('#80C9FF');
 const DEFAULT_ZOOM_BOOST = Math.log2(1.2);
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -66,9 +68,10 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
 
 type RoutePathProps = {
   pins: LocationPin[];
+  animated?: boolean;
 };
 
-function RoutePath({ pins }: RoutePathProps) {
+function RoutePath({ pins, animated = true }: RoutePathProps) {
   const map = useMap();
   useEffect(() => {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -78,7 +81,7 @@ function RoutePath({ pins }: RoutePathProps) {
     svg.style.overflow = 'hidden';
     svg.setAttribute('aria-hidden', 'true');
     path.setAttribute('fill', 'none');
-    path.setAttribute('class', 'route-path');
+    path.setAttribute('class', `route-path${animated ? '' : ' route-path-inactive'}`);
     path.setAttribute('stroke', '#888888');
     path.setAttribute('stroke-width', '0.5');
     path.setAttribute('stroke-linecap', 'round');
@@ -110,9 +113,16 @@ function RoutePath({ pins }: RoutePathProps) {
       });
       let d = `M ${precise[0].x} ${precise[0].y}`;
       for (let i = 0; i < precise.length - 1; i++) {
-        const a = precise[i].add(handles[i]);
+        let a = precise[i].add(handles[i]);
         const end = precise[i + 1];
         const b = end.subtract(handles[i + 1]);
+        if (pins[i]?.id === 'pin-10' && pins[i + 1]?.id === 'pin-11') {
+          // These stops are almost collinear with the pavilion. Give the
+          // departure a gentle bow while keeping the arrival tangent shared
+          // with the next segment, so the curve flows smoothly through Walk 1.
+          const direction = end.subtract(precise[i]);
+          a = a.add(L.point(-direction.y, direction.x).multiplyBy(0.3));
+        }
         d += ` C ${a.x} ${a.y}, ${b.x} ${b.y}, ${end.x} ${end.y}`;
       }
       path.setAttribute('d', d);
@@ -129,7 +139,7 @@ function RoutePath({ pins }: RoutePathProps) {
       map.off('zoomend', show);
       svg.remove();
     };
-  }, [map, pins]);
+  }, [map, pins, animated]);
   return null;
 }
 function DebugMapFocus({ pin }: { pin: LocationPin | null }) {
@@ -139,9 +149,39 @@ function DebugMapFocus({ pin }: { pin: LocationPin | null }) {
   }, [map, pin]);
   return null;
 }
-function LocationMarker({ setUserPos, visible }: { setUserPos: (pos: [number, number]) => void; visible: boolean }) {
+function WalkingRouteFocus({ walking, pins }: { walking: boolean; pins: LocationPin[] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!walking) return;
+    const stops = pins.filter(pin => isWalkingStop(pin.id));
+    if (!stops.length) return;
+    const size = map.getSize();
+    const options = {
+      paddingTopLeft: L.point(40, Math.min(160, size.y * 0.22)),
+      paddingBottomRight: L.point(40, Math.min(180, size.y * 0.25)),
+      maxZoom: 17 + DEFAULT_ZOOM_BOOST,
+      duration: 1.2,
+    };
+    // Include more of the surrounding path, beyond simply fitting the pins.
+    const bounds = L.latLngBounds(stops.map(pin => L.latLng(pin.lat, pin.lng))).pad(0.4);
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) map.fitBounds(bounds, options);
+    else map.flyToBounds(bounds, options);
+  }, [map, walking, pins]);
+  return null;
+}
+
+function LocationMarker({ setUserPos, visible, followUser }: { setUserPos: (pos: [number, number]) => void; visible: boolean; followUser: boolean }) {
   const [position, setPosition] = useState<L.LatLng | null>(null);
   const map = useMap();
+  const followUserRef = useRef(followUser);
+  const latestPositionRef = useRef<L.LatLng | null>(null);
+  useEffect(() => {
+    const resumingBus = followUser && !followUserRef.current;
+    followUserRef.current = followUser;
+    if (resumingBus && latestPositionRef.current) {
+      map.setView(latestPositionRef.current, 17 + DEFAULT_ZOOM_BOOST, { animate: true });
+    }
+  }, [followUser, map]);
 
   const handleRecenter = () => {
     if (position) {
@@ -156,8 +196,11 @@ function LocationMarker({ setUserPos, visible }: { setUserPos: (pos: [number, nu
       (result) => {
         if (disposed) return;
         const next = L.latLng(result.coords.latitude, result.coords.longitude);
+        latestPositionRef.current = next;
         setPosition(next);
         setUserPos([next.lat, next.lng]);
+        // Keep GPS and audio triggers live without moving the walking overview.
+        if (!followUserRef.current) { hasLocated = true; return; }
         // Use a fixed close-up zoom, independent of GPS accuracy bounds.
         // Subsequent fixes keep the user centered while preserving their zoom.
         if (!hasLocated) {
@@ -207,6 +250,13 @@ function LocationMarker({ setUserPos, visible }: { setUserPos: (pos: [number, nu
 
 export default function MapPage() {
   const [pins] = useState<LocationPin[]>(getStoredPins());
+  // Deliberately session-only: refresh always returns to the bus journey.
+  const [walking, setWalking] = useState(false);
+  const [leavingBus, setLeavingBus] = useState(false);
+  const walkingRef = useRef(false);
+  const navigationPins = useMemo(() => journeyPins(pins, walking), [pins, walking]);
+  const busRoutePins = useMemo(() => journeyPins(pins, false), [pins]);
+  const walkingRoutePins = useMemo(() => walkingPath(pins), [pins]);
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
   const [activePin, setActivePin] = useState<LocationPin | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -221,6 +271,7 @@ export default function MapPage() {
   const [showRoute, setShowRoute] = useState(true);
   const [showMarkers, setShowMarkers] = useState(true);
   const [showLocationNames, setShowLocationNames] = useState(false);
+  const [showGeofences, setShowGeofences] = useState(false);
   const [debugPlayback, setDebugPlayback] = useState(false);
   const [arScene, setArScene] = useState<{ kind: EncounterKind; trackId: string; audioUrl: string; launch: GroundARLaunch } | null>(null);
   const [handScene, setHandScene] = useState<{ trackId: string; audioUrl: string; launch: HandCameraLaunch } | null>(null);
@@ -231,7 +282,6 @@ export default function MapPage() {
   const debugPlaybackRef = useRef(false);
   const playbackRequestRef = useRef(0);
   const [debugPinId, setDebugPinId] = useState(pins[0]?.id ?? '');
-  const [showGeofences, setShowGeofences] = useState(false);
   const [showLayerDebug, setShowLayerDebug] = useState(false);
   const [fieldSettings, setFieldSettings] = useState({ ...DEFAULT_FIELD_SETTINGS });
   const [darkMap, setDarkMap] = useState(false);
@@ -255,21 +305,20 @@ export default function MapPage() {
   const playbackField = usePlaybackField(audioRef);
   const fadingAudiosRef = useRef<HTMLAudioElement[]>([]);
   const fadeIntervalsRef = useRef<number[]>([]);
+  const fadeCompletionsRef = useRef(new Map<number, () => void>());
   const isSwitchingRef = useRef(false);
   const switchTimeoutRef = useRef<number | null>(null);
 
-  const fadeOutAndStopAudio = (audioEl: HTMLAudioElement, duration = 10000) => {
-    const startVolume = audioEl.volume || 1;
-    const steps = 100;
-    const intervalMs = duration / steps;
-    let step = 0;
+  const fadeOutAndStopAudio = (audioEl: HTMLAudioElement, duration = 12000): Promise<void> => new Promise(resolve => {
+    const startVolume = audioEl.volume;
+    const startedAt = performance.now();
 
     const intervalId = window.setInterval(() => {
-      step += 1;
-      const progress = step / steps;
-      audioEl.volume = Math.max(0, startVolume * (1 - progress));
+      const progress = Math.min(1, (performance.now() - startedAt) / duration);
+      // Fade exponentially to -60 dB, then set exact silence at the end.
+      audioEl.volume = progress >= 1 ? 0 : startVolume * Math.pow(0.001, progress);
 
-      if (step >= steps) {
+      if (progress >= 1) {
         window.clearInterval(intervalId);
 
         try {
@@ -283,14 +332,17 @@ export default function MapPage() {
 
         fadingAudiosRef.current = fadingAudiosRef.current.filter((a) => a !== audioEl);
         fadeIntervalsRef.current = fadeIntervalsRef.current.filter((id) => id !== intervalId);
+        fadeCompletionsRef.current.delete(intervalId);
+        resolve();
       }
-    }, intervalMs);
+    }, 50);
 
     fadeIntervalsRef.current.push(intervalId);
-  };
+    fadeCompletionsRef.current.set(intervalId, resolve);
+  });
 
   const getClosestPinInRange = (pos: [number, number]) => {
-    const nearbyPins = pins
+    const nearbyPins = navigationPins
       .map((pin) => ({
         pin,
         distance: getDistance(pos[0], pos[1], pin.lat, pin.lng),
@@ -299,6 +351,36 @@ export default function MapPage() {
       .sort((a, b) => a.distance - b.distance);
 
     return nearbyPins.length > 0 ? nearbyPins[0].pin : null;
+  };
+
+  const leaveBus = async () => {
+    const getOffPin = pins.find(pin => pin.id === 'pin-10b');
+    if (walkingRef.current || !getOffPin || !audioRef.current) return;
+    const request = ++playbackRequestRef.current;
+    if (switchTimeoutRef.current) window.clearTimeout(switchTimeoutRef.current);
+    switchTimeoutRef.current = null;
+    fadeIntervalsRef.current.forEach(id => window.clearInterval(id));
+    fadeIntervalsRef.current = [];
+    fadeCompletionsRef.current.forEach(resolve => resolve());
+    fadeCompletionsRef.current.clear();
+    fadingAudiosRef.current.forEach(audio => { audio.pause(); audio.removeAttribute('src'); audio.load(); });
+    fadingAudiosRef.current = [];
+    const audio = audioRef.current;
+    // Lock GPS and controls until the exclusive transition has finished.
+    walkingRef.current = true;
+    setWalking(true);
+    setDebugPinId(getOffPin.id);
+    setLeavingBus(true);
+    isSwitchingRef.current = true;
+    try {
+      if (!audio.paused && !audio.ended) await fadeOutAndStopAudio(audio);
+      if (request === playbackRequestRef.current) await playPinAudio(getOffPin);
+    } finally {
+      if (request + 1 === playbackRequestRef.current) {
+        isSwitchingRef.current = false;
+        setLeavingBus(false);
+      }
+    }
   };
 
   const playPinAudio = async (pin: LocationPin) => {
@@ -342,7 +424,7 @@ export default function MapPage() {
       if (hasCurrentAudio) {
         const currentSrc = mainAudio.currentSrc || mainAudio.src;
         const currentTime = mainAudio.currentTime || 0;
-        const currentVolume = mainAudio.volume || 1;
+        const currentVolume = mainAudio.volume;
 
         const outgoingAudio = new Audio();
         outgoingAudio.src = currentSrc;
@@ -362,7 +444,7 @@ export default function MapPage() {
             }
 
             fadingAudiosRef.current.push(outgoingAudio);
-            fadeOutAndStopAudio(outgoingAudio, 4000);
+            fadeOutAndStopAudio(outgoingAudio);
 
             mainAudio.pause();
             mainAudio.currentTime = 0;
@@ -453,16 +535,19 @@ export default function MapPage() {
         window.clearTimeout(switchTimeoutRef.current);
       }
     };
-  }, [userPos, hasStarted, activePin, debugPlayback, arScene, handScene]);
+  }, [userPos, hasStarted, activePin, debugPlayback, arScene, handScene, walking, leavingBus]);
 
   useEffect(() => {
     return () => {
+      ++playbackRequestRef.current;
       if (switchTimeoutRef.current) {
         window.clearTimeout(switchTimeoutRef.current);
       }
 
       fadeIntervalsRef.current.forEach((id) => window.clearInterval(id));
       fadeIntervalsRef.current = [];
+      fadeCompletionsRef.current.forEach(resolve => resolve());
+      fadeCompletionsRef.current.clear();
 
       fadingAudiosRef.current.forEach((audio) => {
         try {
@@ -482,10 +567,13 @@ export default function MapPage() {
   const stopPreviewAudio = () => {
     ++playbackRequestRef.current;
     isSwitchingRef.current = false;
+    setLeavingBus(false);
     if (switchTimeoutRef.current) window.clearTimeout(switchTimeoutRef.current);
     switchTimeoutRef.current = null;
     fadeIntervalsRef.current.forEach(id => window.clearInterval(id));
     fadeIntervalsRef.current = [];
+    fadeCompletionsRef.current.forEach(resolve => resolve());
+    fadeCompletionsRef.current.clear();
     fadingAudiosRef.current.forEach(audio => { audio.pause(); audio.removeAttribute('src'); audio.load(); });
     fadingAudiosRef.current = [];
     const audio = audioRef.current;
@@ -590,6 +678,7 @@ export default function MapPage() {
   };
 
   const toggleAudio = () => {
+    if (isSwitchingRef.current) return;
     playbackField.prepare();
     if (!audioRef.current || !activePin) return;
 
@@ -614,6 +703,19 @@ export default function MapPage() {
         });
     }
   };
+
+  const canLeaveBus = hasStarted && !walking &&
+    (activePin?.id === 'pin-10' || (!debugPlayback && !!(userPos && nearWalkingPath(userPos, pins))));
+
+  useEffect(() => {
+    if (!walking || leavingBus || arScene || handScene) return;
+    const position: [number, number] | null = debugPlayback
+      ? (activePin ? [activePin.lat, activePin.lng] : null)
+      : userPos;
+    if (!position || !backOnBusPath(position, pins)) return;
+    walkingRef.current = false;
+    setWalking(false);
+  }, [walking, userPos, pins, debugPlayback, activePin, leavingBus, arScene, handScene]);
 
   return (
     <div inert={!!arScene || !!handScene} className={`relative w-full h-full bg-zinc-950${darkMap ? " dark-map" : ""}${showOpening ? " opening-active" : ""}`}>
@@ -645,18 +747,18 @@ export default function MapPage() {
                 Location markers
                 <input type="checkbox" checked={showMarkers} onChange={e => setShowMarkers(e.target.checked)} className="h-5 w-5 accent-emerald-500" />              </label>
               <label className="flex min-h-10 cursor-pointer items-center justify-between gap-3 text-xs">
-                Stop / location names
+                Stop names & radius labels
                 <input type="checkbox" checked={showLocationNames} onChange={e => setShowLocationNames(e.target.checked)} className="h-5 w-5 accent-emerald-500" />
               </label>
               <label className="flex min-h-10 cursor-pointer items-center justify-between gap-3 text-xs">
-                Geofence radius
+                Geofence circles
                 <input type="checkbox" checked={showGeofences} onChange={e => setShowGeofences(e.target.checked)} className="h-5 w-5 accent-emerald-500" />
               </label>
             </div>
           )}
         </aside>
       )}
-      {hasStarted && <DebugAudioPanel pins={pins} enabled={debugPlayback} selectedId={debugPinId}
+      {hasStarted && <DebugAudioPanel pins={navigationPins} enabled={debugPlayback} selectedId={debugPinId}
         activeId={activePin?.id} playing={isPlaying} elapsed={elapsed} duration={duration}
         onEnter={enterDebugPlayback} onExit={exitDebugPlayback} onPreview={previewDebugPin}
         onTogglePlayback={toggleAudio} onSeek={seekDebugAudio} />}
@@ -690,16 +792,20 @@ export default function MapPage() {
 
           <MagneticField pins={pins} enabled={true} userPos={debugPlayback && activePin ? [activePin.lat, activePin.lng] : userPos} settings={fieldSettings}
             sampleAudio={playbackField.sample} />
-          <DebugMapFocus pin={debugPlayback ? activePin : null} />
-          {hasStarted && !debugPlayback && <LocationMarker setUserPos={setUserPos} visible={showMarkers} />}
-          {showRoute && <RoutePath pins={pins} />}
+          <DebugMapFocus pin={debugPlayback && !(walking && activePin && (isWalkingStop(activePin.id) || activePin.id === 'pin-10b')) ? activePin : null} />
+          <MapDebugOverlays pins={pins} circles={showGeofences} labels={showLocationNames && showMarkers} activeId={activePin?.id} />
+          <WalkingRouteFocus walking={walking} pins={walkingRoutePins} />
+          {hasStarted && !debugPlayback && <LocationMarker setUserPos={setUserPos} visible={showMarkers} followUser={!walking} />}
+          {showRoute && <>
+            <RoutePath pins={busRoutePins} />
+            <RoutePath pins={walkingRoutePins} animated={walking} />
+          </>}
 
           {pins.map((pin) => (
             <React.Fragment key={pin.id}>
-              {showMarkers && <Marker position={[pin.lat, pin.lng]} icon={pinIcon} title={pin.name}>
-                {showLocationNames && <Tooltip permanent direction="top" offset={[0, pin.id === 'pin-10b' ? -34 : -8]} className="stop-location-label">
-                  {pin.name}
-                </Tooltip>}
+              {showMarkers && pin.id !== 'pin-10b' && <Marker key={`${pin.id}-${isWalkingStop(pin.id) && walking}`} position={[pin.lat, pin.lng]}
+                icon={isWalkingStop(pin.id) ? (walking ? walkingPinIcons[WALKING_STOP_IDS.indexOf(pin.id)] : inactivePinIcon) : pinIcon}
+                title={`${pin.name}${isWalkingStop(pin.id) && !walking ? ' (walking route inactive)' : ''}`}>
                 <Popup>
                   <div className="p-1">
                     <h3 className="font-bold text-zinc-900">{pin.name}</h3>
@@ -713,33 +819,28 @@ export default function MapPage() {
                 </Popup>
               </Marker>}
 
-              {showGeofences && <Circle
-                center={[pin.lat, pin.lng]}
-                radius={pin.radius}
-                pathOptions={{
-                  color: activePin?.id === pin.id ? '#10b981' : '#94a3b8',
-                  fillColor: activePin?.id === pin.id ? '#10b981' : '#94a3b8',
-                  fillOpacity: 0.1,
-                }}
-              />}
             </React.Fragment>
           ))}
+
         </MapContainer>
       </div>
 
       {hasStarted && <MapSubtitles audioRef={audioRef} trackId={activePin?.id} audioUrl={activePin?.audioUrl} />}
-      {activePin && <div className="audio-bottom-wash" aria-hidden="true" />}
+      {(activePin || canLeaveBus) && <div className="audio-bottom-wash" aria-hidden="true" />}
       <AnimatePresence>
-        {activePin && (
+        {(activePin || canLeaveBus) && (
           <motion.div initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 16, opacity: 0 }}
             className="audio-card absolute z-[1000] text-zinc-800">
-            {encounterLabels[activePin.id] && <button type="button" className="journey-ar-launch" onClick={openAR}>
+            {activePin && encounterLabels[activePin.id] && <button type="button" className="journey-ar-launch" onClick={openAR}>
               {encounterLabels[activePin.id]}
             </button>}
+            {canLeaveBus &&
+              <button type="button" className="journey-ar-launch" onClick={() => void leaveBus()}>I Left the Bus</button>}
+            {leavingBus && <p role="status" className="mb-2 text-xs">Switching to the walking route…</p>}
             {debugPlayback && <p className="debug-audio-status mb-2 text-xs font-bold">DEBUG AUDIO PREVIEW - GPS triggers paused</p>}
-            <h2 className="mb-4 truncate font-mono text-sm font-normal tracking-wide" title={activePin.name}>{activePin.name}</h2>
-            <div className="flex items-start gap-2">
-              <button type="button" onClick={toggleAudio} aria-label={isPlaying ? 'Pause audio' : 'Play audio'}
+            <h2 className="mb-4 truncate font-mono text-sm font-normal tracking-wide" title={activePin?.name}>{activePin?.name ?? 'Optional MacRitchie walk'}</h2>
+            {activePin && <div className="flex items-start gap-2">
+              <button type="button" onClick={toggleAudio} disabled={leavingBus} aria-label={isPlaying ? 'Pause audio' : 'Play audio'}
                 className="-mt-5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full hover:bg-black/5 focus-visible:outline-2 focus-visible:outline-zinc-800">
                 {isPlaying ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current" />}
               </button>
@@ -753,7 +854,7 @@ export default function MapPage() {
                   <span aria-label="Remaining time">-{formatTime(duration - elapsed)}</span>
                 </div>
               </div>
-            </div>
+            </div>}
             {audioError && <p role="status" className="mt-1 text-xs text-red-700">{audioError}</p>}
           </motion.div>
         )}

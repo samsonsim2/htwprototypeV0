@@ -45,6 +45,12 @@ body {
   stroke-dasharray: 6 4;
   animation: route-dash-flow 1s linear infinite;
 }
+.route-path.route-path-inactive { animation: none; }
+.walking-pin-pulse { animation: walking-pin-pulse 2.8s ease-in-out infinite; }
+@keyframes walking-pin-pulse {
+  0%, 65%, 100% { transform: scale(1); }
+  25% { transform: scale(2.6); }
+}
 
 @keyframes route-dash-flow {
   from { stroke-dashoffset: 0; }
@@ -54,6 +60,7 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .route-path { animation: none; }
+  .walking-pin-pulse { animation: none; }
 }
 
 .soft-location-dot {
@@ -205,11 +212,15 @@ body {
 .dark-map .map-subtitles { --speaker-accent: var(--speaker-dark); }
 
 .leaflet-tooltip.stop-location-label {
+  text-align: center;
   background: rgba(255,255,255,.94); color: #27272a;
   border: 1px solid rgba(39,39,42,.15); border-radius: 5px;
   padding: 3px 7px; font-family: inherit; font-size: 11px; font-weight: 500;
   box-shadow: 0 1px 4px rgba(0,0,0,.12); pointer-events: none;
 }
+.map-debug-overlays { position: absolute; inset: 0 auto auto 0; pointer-events: none; transform-origin: 0 0; }
+.map-debug-overlays > svg { position: absolute; overflow: visible; pointer-events: none; }
+.map-debug-overlays .stop-location-label { transition: none; }
 .dark-map .leaflet-tooltip.stop-location-label {
   background: rgba(24,24,27,.94); color: #e8e6df; border-color: rgba(255,255,255,.2);
 }
