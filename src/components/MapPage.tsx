@@ -11,7 +11,7 @@ import L from 'leaflet';
 import { Navigation, Play, Pause, Settings, Layers, Moon, Sun } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { getStoredPins, LocationPin } from '../config';
+import { BOARDING_AUDIO_URL, getStoredPins, LocationPin } from '../config';
 import { journeyPins, walkingPath, isWalkingStop, WALKING_STOP_IDS, nearWalkingPath, backOnBusPath } from '../journeyRoutes';
 import MagneticField from './MagneticField';
 import MapDebugOverlays from './MapDebugOverlays';
@@ -26,8 +26,20 @@ import { launchHandCamera, type HandCameraLaunch } from './ar/handCamera';
 
 const ARExperience = React.lazy(() => import('./ARExperience'));
 const HandARExperience = React.lazy(() => import('./HandARExperience'));
-const groundEncounters: Record<string, EncounterKind> = { 'pin-1': 'mynas', 'pin-1b': 'bun', 'pin-6': 'rubber-tree' };
-const encounterLabels: Record<string, string> = { 'pin-1': 'Meet the mynas in AR', 'pin-1b': 'Find the pink bun in AR', 'pin-6': 'Tap a rubber tree in AR', 'pin-4': 'Try the hand filter in AR' };
+const HAND_FILTER_STOP_ID = 'pin-11';
+const groundEncounters: Record<string, EncounterKind> = {
+  'pin-9': 'mynas',
+  'pin-9b': 'mynas',
+  'pin-10': 'bun',
+  'pin-11b': 'rubber-tree',
+};
+const encounterLabels: Record<string, string> = {
+  'pin-9': 'Meet the mynas in AR',
+  'pin-9b': 'Meet the mynas in AR',
+  'pin-10': 'Find the pink bun in AR',
+  [HAND_FILTER_STOP_ID]: 'Try the hand filter in AR',
+  'pin-11b': 'Tap a rubber tree in AR',
+};
 
 class ARLoadBoundary extends React.Component<{ onClose: () => void; launch: { dispose: () => Promise<void> }; children: React.ReactNode }, { failed: boolean }> {
   state = { failed: false };
@@ -116,7 +128,7 @@ function RoutePath({ pins, animated = true }: RoutePathProps) {
         let a = precise[i].add(handles[i]);
         const end = precise[i + 1];
         const b = end.subtract(handles[i + 1]);
-        if (pins[i]?.id === 'pin-10' && pins[i + 1]?.id === 'pin-11') {
+        if (pins[i]?.id === 'pin-9' && pins[i + 1]?.id === 'pin-10') {
           // These stops are almost collinear with the pavilion. Give the
           // departure a gentle bow while keeping the arrival tangent shared
           // with the next segment, so the curve flows smoothly through Walk 1.
@@ -259,6 +271,7 @@ export default function MapPage() {
   const walkingRoutePins = useMemo(() => walkingPath(pins), [pins]);
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
   const [activePin, setActivePin] = useState<LocationPin | null>(null);
+  const boardedBusRef = useRef(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [showOpening, setShowOpening] = useState(true);
@@ -271,7 +284,7 @@ export default function MapPage() {
   const [showRoute, setShowRoute] = useState(true);
   const [showMarkers, setShowMarkers] = useState(true);
   const [showLocationNames, setShowLocationNames] = useState(false);
-  const [showGeofences, setShowGeofences] = useState(false);
+  const [showGeofences, setShowGeofences] = useState(true);
   const [debugPlayback, setDebugPlayback] = useState(false);
   const [arScene, setArScene] = useState<{ kind: EncounterKind; trackId: string; audioUrl: string; launch: GroundARLaunch } | null>(null);
   const [handScene, setHandScene] = useState<{ trackId: string; audioUrl: string; launch: HandCameraLaunch } | null>(null);
@@ -292,7 +305,6 @@ export default function MapPage() {
     setFieldSettings(current => ({ ...current, ...palette }));
     setDarkMap(!darkMap);
   };
-  const [progress, setProgress] = useState(0);
   const [elapsed, setElapsed] = useState(0);
   const [duration, setDuration] = useState(0);
   const formatTime = (seconds: number) => {
@@ -347,14 +359,15 @@ export default function MapPage() {
         pin,
         distance: getDistance(pos[0], pos[1], pin.lat, pin.lng),
       }))
-      .filter((item) => item.distance <= item.pin.radius)
+      .filter((item) => item.distance <= item.pin.radius &&
+        !(boardedBusRef.current && item.pin.id === 'pin-1'))
       .sort((a, b) => a.distance - b.distance);
 
     return nearbyPins.length > 0 ? nearbyPins[0].pin : null;
   };
 
   const leaveBus = async () => {
-    const getOffPin = pins.find(pin => pin.id === 'pin-10b');
+    const getOffPin = pins.find(pin => pin.id === 'pin-9b');
     if (walkingRef.current || !getOffPin || !audioRef.current) return;
     const request = ++playbackRequestRef.current;
     if (switchTimeoutRef.current) window.clearTimeout(switchTimeoutRef.current);
@@ -387,7 +400,6 @@ export default function MapPage() {
     if (!audioRef.current) return;
 
     const request = ++playbackRequestRef.current;
-    setProgress(0);
     setElapsed(0);
     setDuration(0);
     setAudioError(null);
@@ -414,7 +426,6 @@ export default function MapPage() {
     const request = ++playbackRequestRef.current;
     isSwitchingRef.current = true;
     setAudioError(null);
-    setProgress(0);
 
     const mainAudio = audioRef.current;
 
@@ -519,7 +530,7 @@ export default function MapPage() {
 
     if (!closestPin) return;
     if (activePin?.id === closestPin.id) return;
-    // Keep a manually selected recording at a shared geofence (10 / 10b).
+    // Keep a manually selected recording at a shared geofence (9 / 9b).
     if (activePin && activePin.lat === closestPin.lat && activePin.lng === closestPin.lng) return;
 
     if (switchTimeoutRef.current) {
@@ -582,7 +593,6 @@ export default function MapPage() {
     setIsPlaying(false);
     setElapsed(0);
     setDuration(0);
-    setProgress(0);
     setAudioError(null);
   };
 
@@ -612,7 +622,7 @@ export default function MapPage() {
 
   const openAR = () => {
     if (!activePin || !encounterLabels[activePin.id] || isSwitchingRef.current || arOpenRef.current) return;
-    if (activePin.id === 'pin-4') {
+    if (activePin.id === HAND_FILTER_STOP_ID) {
       const launch = launchHandCamera();
       handLaunchRef.current = launch; arOpenRef.current = true;
       if (switchTimeoutRef.current) window.clearTimeout(switchTimeoutRef.current);
@@ -657,12 +667,11 @@ export default function MapPage() {
     setArScene({ ...arScene, launch });
   };
 
-  const seekDebugAudio = (seconds: number) => {
+  const seekAudio = (seconds: number) => {
     const audio = audioRef.current;
-    if (!debugPlaybackRef.current || !audio || !Number.isFinite(audio.duration)) return;
+    if (leavingBus || isSwitchingRef.current || !audio || !Number.isFinite(audio.duration) || audio.duration <= 0) return;
     audio.currentTime = Math.max(0, Math.min(seconds, audio.duration));
     setElapsed(audio.currentTime);
-    setProgress(audio.duration > 0 ? audio.currentTime / audio.duration * 100 : 0);
   };
 
   const handleStart = async () => {
@@ -704,8 +713,18 @@ export default function MapPage() {
     }
   };
 
+  const canBoardBus = activePin?.id === 'pin-1' && activePin.audioUrl !== BOARDING_AUDIO_URL;
+  const boardBus = () => {
+    if (!canBoardBus || !activePin || isSwitchingRef.current) return;
+    if (switchTimeoutRef.current !== null) window.clearTimeout(switchTimeoutRef.current);
+    switchTimeoutRef.current = null;
+    if (!debugPlaybackRef.current) boardedBusRef.current = true;
+    playbackField.prepare();
+    void playPinAudio({ ...activePin, audioUrl: BOARDING_AUDIO_URL });
+  };
+
   const canLeaveBus = hasStarted && !walking &&
-    (activePin?.id === 'pin-10' || (!debugPlayback && !!(userPos && nearWalkingPath(userPos, pins))));
+    (activePin?.id === 'pin-9' || (!debugPlayback && !!(userPos && nearWalkingPath(userPos, pins))));
 
   useEffect(() => {
     if (!walking || leavingBus || arScene || handScene) return;
@@ -761,7 +780,7 @@ export default function MapPage() {
       {hasStarted && <DebugAudioPanel pins={navigationPins} enabled={debugPlayback} selectedId={debugPinId}
         activeId={activePin?.id} playing={isPlaying} elapsed={elapsed} duration={duration}
         onEnter={enterDebugPlayback} onExit={exitDebugPlayback} onPreview={previewDebugPin}
-        onTogglePlayback={toggleAudio} onSeek={seekDebugAudio} />}
+        onTogglePlayback={toggleAudio} onSeek={seekAudio} />}
       {hasStarted && (
         <FieldDebugPanel settings={fieldSettings} onChange={setFieldSettings}
           mapOpacity={mapOpacity} onMapOpacity={setMapOpacity} />
@@ -792,7 +811,7 @@ export default function MapPage() {
 
           <MagneticField pins={pins} enabled={true} userPos={debugPlayback && activePin ? [activePin.lat, activePin.lng] : userPos} settings={fieldSettings}
             sampleAudio={playbackField.sample} />
-          <DebugMapFocus pin={debugPlayback && !(walking && activePin && (isWalkingStop(activePin.id) || activePin.id === 'pin-10b')) ? activePin : null} />
+          <DebugMapFocus pin={debugPlayback && !(walking && activePin && (isWalkingStop(activePin.id) || activePin.id === 'pin-9b')) ? activePin : null} />
           <MapDebugOverlays pins={pins} circles={showGeofences} labels={showLocationNames && showMarkers} activeId={activePin?.id} />
           <WalkingRouteFocus walking={walking} pins={walkingRoutePins} />
           {hasStarted && !debugPlayback && <LocationMarker setUserPos={setUserPos} visible={showMarkers} followUser={!walking} />}
@@ -803,7 +822,7 @@ export default function MapPage() {
 
           {pins.map((pin) => (
             <React.Fragment key={pin.id}>
-              {showMarkers && pin.id !== 'pin-10b' && <Marker key={`${pin.id}-${isWalkingStop(pin.id) && walking}`} position={[pin.lat, pin.lng]}
+              {showMarkers && pin.id !== 'pin-9b' && <Marker key={`${pin.id}-${isWalkingStop(pin.id) && walking}`} position={[pin.lat, pin.lng]}
                 icon={isWalkingStop(pin.id) ? (walking ? walkingPinIcons[WALKING_STOP_IDS.indexOf(pin.id)] : inactivePinIcon) : pinIcon}
                 title={`${pin.name}${isWalkingStop(pin.id) && !walking ? ' (walking route inactive)' : ''}`}>
                 <Popup>
@@ -825,17 +844,23 @@ export default function MapPage() {
         </MapContainer>
       </div>
 
-      {hasStarted && <MapSubtitles audioRef={audioRef} trackId={activePin?.id} audioUrl={activePin?.audioUrl} />}
+      {hasStarted && <MapSubtitles audioRef={audioRef}
+        trackId={activePin?.audioUrl === BOARDING_AUDIO_URL ? 'boarding' : activePin?.id}
+        audioUrl={activePin?.audioUrl} />}
       {(activePin || canLeaveBus) && <div className="audio-bottom-wash" aria-hidden="true" />}
       <AnimatePresence>
         {(activePin || canLeaveBus) && (
           <motion.div initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 16, opacity: 0 }}
             className="audio-card absolute z-[1000] text-zinc-800">
-            {activePin && encounterLabels[activePin.id] && <button type="button" className="journey-ar-launch" onClick={openAR}>
-              {encounterLabels[activePin.id]}
-            </button>}
-            {canLeaveBus &&
-              <button type="button" className="journey-ar-launch" onClick={() => void leaveBus()}>I Left the Bus</button>}
+            {(canLeaveBus || (activePin && encounterLabels[activePin.id])) &&
+              <div className="journey-actions">
+                {activePin && encounterLabels[activePin.id] &&
+                  <button type="button" className="journey-ar-launch" onClick={openAR}>{encounterLabels[activePin.id]}</button>}
+                {canLeaveBus &&
+                  <button type="button" className="journey-ar-launch" onClick={() => void leaveBus()}>I Left the Bus</button>}
+              </div>}
+            {canBoardBus &&
+              <button type="button" className="journey-ar-launch" onClick={boardBus}>I'm on the bus</button>}
             {leavingBus && <p role="status" className="mb-2 text-xs">Switching to the walking route…</p>}
             {debugPlayback && <p className="debug-audio-status mb-2 text-xs font-bold">DEBUG AUDIO PREVIEW - GPS triggers paused</p>}
             <h2 className="mb-4 truncate font-mono text-sm font-normal tracking-wide" title={activePin?.name}>{activePin?.name ?? 'Optional MacRitchie walk'}</h2>
@@ -845,9 +870,14 @@ export default function MapPage() {
                 {isPlaying ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current" />}
               </button>
               <div className="min-w-0 flex-1">
-                <div role="progressbar" aria-label="Track progress" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progress)}
-                  className="h-px w-full bg-zinc-400/50">
-                  <div className="h-full bg-zinc-800 transition-[width] duration-200 ease-linear" style={{ width: `${progress}%` }} />
+                <div className="audio-seek-track relative h-px w-full bg-zinc-400/50">
+                  <div aria-hidden="true" className="h-full bg-zinc-800 transition-[width] duration-200 ease-linear"
+                    style={{ width: `${duration > 0 ? Math.min(elapsed / duration, 1) * 100 : 0}%` }} />
+                  <input type="range" min={0} max={duration || 1} step={0.1}
+                    value={Math.min(elapsed, duration)} disabled={duration <= 0 || leavingBus}
+                    aria-label="Seek audio" aria-valuetext={formatTime(elapsed)}
+                    onChange={event => seekAudio(event.currentTarget.valueAsNumber)}
+                    className="absolute -top-3 left-0 m-0 h-6 w-full cursor-pointer opacity-0 disabled:cursor-default" />
                 </div>
                 <div className="mt-2 flex justify-between font-mono text-[11px] tabular-nums text-zinc-500">
                   <span aria-label="Elapsed time">{formatTime(elapsed)}</span>
@@ -872,20 +902,13 @@ export default function MapPage() {
       <audio
         ref={audioRef}
         onEnded={() => setIsPlaying(false)}
-        onLoadStart={() => { setElapsed(0); setDuration(0); setProgress(0); }}
+        onLoadStart={() => { setElapsed(0); setDuration(0); }}
         onLoadedMetadata={e => setDuration(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0)}
         onDurationChange={e => setDuration(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0)}
-        onTimeUpdate={(e) => {
-          const audio = e.currentTarget;
-          setElapsed(audio.currentTime);
-          if (Number.isFinite(audio.duration) && audio.duration > 0) {
-            setProgress((audio.currentTime / audio.duration) * 100);
-          }
-        }}
+        onTimeUpdate={e => setElapsed(e.currentTarget.currentTime)}
         onError={(e) => {
           console.error('Audio playback error:', e);
           setIsPlaying(false);
-          setProgress(0);
           setAudioError('Failed to load audio file. Please check if the file exists.');
         }}
         className="hidden"

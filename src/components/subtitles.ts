@@ -11,7 +11,7 @@ export type SubtitleTrack = {
   notes: string[];
   cues: SubtitleCue[];
   contentStatus: 'speech' | 'ambient';
-  timingStatus: 'machine-aligned' | 'not-applicable';
+  timingStatus: 'machine-aligned' | 'draft' | 'not-applicable';
   reviewStatus: 'needs-human-review' | 'not-applicable';
   referenceScript: string;
 };

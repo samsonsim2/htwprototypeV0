@@ -1,14 +1,14 @@
 import type { LocationPin } from './config';
 
-export const WALKING_STOP_IDS = ['pin-11', 'pin-11b', 'pin-12', 'pin-13'];
+export const WALKING_STOP_IDS = ['pin-10', 'pin-11', 'pin-11b', 'pin-12', 'pin-12b'];
 export const isWalkingStop = (id: string) => WALKING_STOP_IDS.includes(id);
 
 export function journeyPins(pins: LocationPin[], walking: boolean) {
-  return pins.filter(pin => walking ? pin.id !== 'pin-10' : pin.id !== 'pin-10b' && !isWalkingStop(pin.id));
+  return pins.filter(pin => walking ? pin.id !== 'pin-9' : pin.id !== 'pin-9b' && !isWalkingStop(pin.id));
 }
 
 export function walkingPath(pins: LocationPin[]) {
-  return ['pin-10', ...WALKING_STOP_IDS, 'pin-14']
+  return ['pin-9', ...WALKING_STOP_IDS, 'pin-13']
     .map(id => pins.find(pin => pin.id === id)).filter((pin): pin is LocationPin => !!pin);
 }
 
@@ -31,7 +31,7 @@ function nearPath(pos: [number, number], path: LocationPin[], corridor: number) 
 }
 
 export function backOnBusPath(pos: [number, number], pins: LocationPin[]) {
-  const endpoints = pins.filter(pin => pin.id === 'pin-10' || pin.id === 'pin-14');
+  const endpoints = pins.filter(pin => pin.id === 'pin-9' || pin.id === 'pin-13');
   // The shared entry/exit areas and walking corridor must not cancel the walk.
   if (endpoints.some(pin => nearPath(pos, [pin], 0)) || nearWalkingPath(pos, pins)) return false;
   return nearPath(pos, journeyPins(pins, false), 30);

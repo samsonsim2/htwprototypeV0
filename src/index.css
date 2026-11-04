@@ -115,6 +115,10 @@ body {
   left: max(20px, env(safe-area-inset-left));
   right: max(20px, env(safe-area-inset-right));
 }
+.audio-seek-track:has(input:focus-visible) {
+  outline: 2px solid currentColor;
+  outline-offset: 4px;
+}
 .audio-bottom-wash {
   position: absolute;
   inset: auto 0 0;
@@ -279,6 +283,8 @@ body {
   text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
 }
 .journey-ar-launch { margin: 0 auto 64px; }
+.journey-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 64px; }
+.journey-actions .journey-ar-launch { margin: 0; }
 .dark-map .journey-ar-launch { border: 1px solid rgba(232,230,223,.4); }
 .ar-experience, .ar-loading { position: fixed; inset: 0; z-index: 4000; background: #1b1e1b; font-family: Favorit, Arial, sans-serif; color: #fff; }
 .ar-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; }

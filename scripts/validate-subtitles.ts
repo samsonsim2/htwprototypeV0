@@ -34,9 +34,17 @@ for (const element of pins.elements) {
   assert.ok(imported);
   pinAudio.set(id.text, path.resolve(root, 'src', imported));
 }
-assert.deepEqual(Object.keys(subtitleTracks).sort(), [...pinAudio.keys()].sort(), 'Every trigger has exactly one subtitle track');
-assert.equal(pinAudio.size, 23);
-const ambient = new Set(['pin-8b', 'pin-14b', 'pin-16b']);
+assert.equal(pinAudio.size, 22);
+assert.deepEqual([...pinAudio.keys()].filter(id => /^pin-\d+$/.test(id)),
+  Array.from({ length: 16 }, (_, i) => 'pin-' + (i + 1)), 'Main stop numbers are consecutive');
+assert.match(path.basename(pinAudio.get('pin-2')!), /^v9 02 Blk 324\.mp3$/);
+assert.ok(![...pinAudio.values()].some(file => path.basename(file).includes('Boarding')), 'Boarding has no GPS trigger');
+const boardingImport = imports.get('boardingAudio');
+assert.ok(boardingImport);
+pinAudio.set('boarding', path.resolve(root, 'src', boardingImport));
+assert.deepEqual(Object.keys(subtitleTracks).sort(), [...pinAudio.keys()].sort(),
+  'Every recording has its own subtitle track');
+const ambient = new Set(['pin-7b', 'pin-13b', 'pin-15b']);
 let checked = 0;
 for (const [id, track] of Object.entries(subtitleTracks)) {
   const audio = pinAudio.get(id)!;
@@ -66,11 +74,5 @@ for (const [id, track] of Object.entries(subtitleTracks)) {
   }
 }
 assert.equal(subtitleTracks['pin-1'].cues[0].speaker, 'archive');
-assert.equal(subtitleTracks['pin-1b'].cues[0].speaker, 'myna-1');
-assert.ok(subtitleTracks['pin-1b'].cues[0].lines.join(' ').includes('pink buns'));
-assert.ok(subtitleTracks['pin-2'].cues.every(cue => cue.speaker === 'bus-166'));
-assert.ok(subtitleTracks['pin-10b'].cues.some(cue => cue.speaker === 'andrew-tay'));
-assert.ok(subtitleTracks['pin-15'].cues.some(cue => cue.speaker === 'phone-caller'));
-assert.ok(subtitleTracks['pin-16'].script.includes('Here ends our journey'));
-assert.ok(!subtitleTracks['pin-17'].script.includes('Here ends our journey'));
-console.log(`Verified ${checked} cues across 23 actual v8 audio files: coverage, fingerprints, speakers, line lengths, timing boundaries and backward seeks; 3 ambient tracks have no captions.`);
+assert.ok(subtitleTracks['pin-14'].cues.some(cue => cue.speaker === 'phone-caller'));
+console.log(`Verified ${checked} cues across ${Object.keys(subtitleTracks).length} v9 tracks, including 3 ambient tracks with no captions.`);

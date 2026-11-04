@@ -28,7 +28,7 @@ export default function MapDebugOverlays({ pins, circles, labels, activeId }: {
         circle.setAttribute('fill-opacity', '0.1');
         svg.appendChild(circle);
       }
-      const label = labels && pin.id !== 'pin-10b' ? document.createElement('div') : null;
+      const label = labels && pin.id !== 'pin-9b' ? document.createElement('div') : null;
       if (label) {
         label.className = 'leaflet-tooltip leaflet-tooltip-top stop-location-label';
         const name = document.createElement('div');
