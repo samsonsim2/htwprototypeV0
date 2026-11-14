@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
 import logoUrl from '../assets/logo/Logo.svg';
 import type { FieldSettings } from './FieldDebugPanel';
 
@@ -69,22 +70,37 @@ function Reveal({ children }: { children: string }) {
 export default function JourneyOpening({ settings, onContinue }: { settings: FieldSettings; onContinue: () => void }) {
   const [reduced] = useState(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const [ready, setReady] = useState(reduced);
-  const [stage, setStage] = useState<'intro' | 'begin' | 'instructions'>('intro');
+  const [stage, setStage] = useState<'intro' | 'begin' | 'instructions' | 'phone'>('intro');
+  const [showPhoneHelp, setShowPhoneHelp] = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const continueRef = useRef<HTMLButtonElement>(null);
   const beginRef = useRef<HTMLButtonElement>(null);
+  const helpRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     const timer = window.setTimeout(() => setReady(true), reduced ? 0 : 3400);
     return () => window.clearTimeout(timer);
   }, [reduced]);
   useEffect(() => {
-    if (stage === 'instructions') continueRef.current?.focus();
+    if (stage === 'instructions' || stage === 'phone') continueRef.current?.focus();
     if (stage === 'begin') beginRef.current?.focus();
   }, [stage]);
+  useEffect(() => {
+    if (!showPhoneHelp) return;
+    closeRef.current?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') { setShowPhoneHelp(false); helpRef.current?.focus(); }
+      if (event.key === 'Tab') { event.preventDefault(); closeRef.current?.focus(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [showPhoneHelp]);
   const advance = () => {
-    if (!ready || leaving) return;
+    if (!ready || leaving || showPhoneHelp || transitioning) return;
     if (stage === 'intro') setStage('begin');
-    else if (stage === 'instructions') { setLeaving(true); onContinue(); }
+    else if (stage === 'instructions') { setTransitioning(true); setStage('phone'); }
+    else if (stage === 'phone') { setLeaving(true); onContinue(); }
   };
   return (
     <div className={`journey-opening stage-${stage}${ready ? ' is-ready' : ''}${leaving ? ' is-leaving' : ''}`} onClick={advance}>
@@ -97,10 +113,39 @@ export default function JourneyOpening({ settings, onContinue }: { settings: Fie
       </div>}
       {ready && stage === 'intro' && <button type="button" className="journey-continue intro-continue" onClick={event => { event.stopPropagation(); advance(); }}>Tap anywhere to continue...</button>}
       {stage === 'begin' && <button ref={beginRef} type="button" className="journey-begin" onClick={event => { event.stopPropagation(); setStage('instructions'); }}>begin journey</button>}
-      {stage === 'instructions' && <div className="journey-instructions" role="dialog" aria-modal="true" aria-labelledby="instruction-title">
+      {(stage === 'instructions' || stage === 'phone') && <div className="journey-instructions" role="dialog" aria-modal="true" aria-labelledby="instruction-title" aria-hidden={showPhoneHelp || undefined}>
+        <AnimatePresence mode="wait" onExitComplete={() => setTransitioning(false)}>
+        <motion.div key={stage} className={`instruction-step${stage === 'phone' ? ' phone-step' : ''}`} exit={{ opacity: 0, filter: reduced ? 'none' : 'blur(5px)' }} transition={{ duration: reduced ? 0 : 0.65 }} onAnimationComplete={() => { if (stage === 'phone') continueRef.current?.focus(); }}>
+        {stage === 'instructions' ? <>
         <h2 id="instruction-title"><Reveal>Before</Reveal><br /><Reveal>we begin...</Reveal></h2>
         <div className="instruction-copy"><p><Reveal>If you are on a</Reveal><br /><Reveal>double-decker bus,</Reveal><br /><Reveal>head to the upper deck.</Reveal></p><p><Reveal>Take a seat right</Reveal><br /><Reveal>at the front.</Reveal></p><p><Reveal>The view is part</Reveal><br /><Reveal>of the journey.</Reveal></p></div>
+        </> : <>
+        <h2 id="instruction-title"><Reveal>Get your</Reveal><br /><Reveal>phone ready...</Reveal></h2>
+        <div className="instruction-copy phone-copy">
+          <p><Reveal>Connect to headphones</Reveal></p>
+          <p><Reveal>Allow location</Reveal></p>
+          <p><Reveal>Make sure your phone has</Reveal><br /><Reveal>enough battery, as your</Reveal><br /><Reveal>browser will stay on throughout</Reveal><br /><Reveal>the experience.</Reveal></p>
+          <p><Reveal>You’ll have the option to step</Reveal><br /><Reveal>off the bus and explore on foot</Reveal><br /><Reveal>during part of the tour.</Reveal></p>
+          <p className="phone-iphone-note"><Reveal>For iPhone users, keep your</Reveal><br /><Reveal>screen on and unlocked</Reveal><br /><Reveal>throughout the journey to avoid</Reveal><br /><Reveal>interrupting the experience.</Reveal></p>
+          <button ref={helpRef} type="button" className="phone-help-link" onClick={event => { event.stopPropagation(); setShowPhoneHelp(true); }}><span aria-hidden="true" className="phone-info-icon">i</span><span>How to reduce interruptions</span></button>
+        </div>
+        </>}
         <button ref={continueRef} type="button" className="journey-continue" onClick={event => { event.stopPropagation(); advance(); }}>Tap anywhere to continue...</button>
+        </motion.div>
+        </AnimatePresence>
+      </div>}
+      {showPhoneHelp && <div className="phone-help-backdrop" onClick={event => event.stopPropagation()}>
+        <section className="phone-help-panel" role="dialog" aria-modal="true" aria-labelledby="phone-help-title">
+          <button ref={closeRef} type="button" className="phone-help-close" aria-label="Close iPhone instructions" onClick={() => { setShowPhoneHelp(false); helpRef.current?.focus(); }}>×</button>
+          <h2 id="phone-help-title">Reduce interruptions</h2>
+          <ol>
+            <li><strong>Keep your screen awake</strong><p>Go to Settings → Display &amp; Brightness → Auto-Lock → Never.</p></li>
+            <li><strong>Turn off Low Power Mode</strong><p>In Settings → Battery, turn off Low Power Mode (look under Power Mode if shown). This lets you change Auto-Lock.</p></li>
+            <li><strong>Reduce calls and notifications</strong><p>Open Control Centre → Focus → Do Not Disturb. Check Settings → Focus → Do Not Disturb for any people or apps still allowed to interrupt.</p></li>
+          </ol>
+          <p>Return to this browser and keep it open, with your phone unlocked, throughout the journey.</p>
+          <p>After the tour, restore your usual Auto-Lock and Focus settings.</p>
+        </section>
       </div>}
     </div>
   );

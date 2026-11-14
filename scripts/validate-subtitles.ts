@@ -44,7 +44,7 @@ assert.ok(boardingImport);
 pinAudio.set('boarding', path.resolve(root, 'src', boardingImport));
 assert.deepEqual(Object.keys(subtitleTracks).sort(), [...pinAudio.keys()].sort(),
   'Every recording has its own subtitle track');
-const ambient = new Set(['pin-7b', 'pin-13b', 'pin-15b']);
+const ambient = new Set(['pin-7b', 'pin-9b', 'pin-13b', 'pin-15b']);
 let checked = 0;
 for (const [id, track] of Object.entries(subtitleTracks)) {
   const audio = pinAudio.get(id)!;

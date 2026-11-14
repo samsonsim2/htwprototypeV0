@@ -17,6 +17,7 @@ import MagneticField from './MagneticField';
 import MapDebugOverlays from './MapDebugOverlays';
 import DebugAudioPanel from './DebugAudioPanel';
 import MapSubtitles from './MapSubtitles';
+import DirectionGuides from './DirectionGuides';
 import JourneyOpening from './JourneyOpening';
 import usePlaybackField from './usePlaybackField';
 import FieldDebugPanel, { DEFAULT_FIELD_SETTINGS } from './FieldDebugPanel';
@@ -33,6 +34,8 @@ const groundEncounters: Record<string, EncounterKind> = {
   'pin-10': 'bun',
   'pin-11b': 'rubber-tree',
 };
+// Keep AR encounters configured while their placement is being decided.
+const SHOW_AR_FILTER_BUTTONS = false;
 const encounterLabels: Record<string, string> = {
   'pin-9': 'Meet the mynas in AR',
   'pin-9b': 'Meet the mynas in AR',
@@ -272,6 +275,14 @@ export default function MapPage() {
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
   const [activePin, setActivePin] = useState<LocationPin | null>(null);
   const boardedBusRef = useRef(false);
+  const [showBoardingInstructions, setShowBoardingInstructions] = useState(true);
+  const [subtitlesStarted, setSubtitlesStarted] = useState(false);
+  const [showDirectionGuides, setShowDirectionGuides] = useState(false);
+  const [pavilionContinued, setPavilionContinued] = useState(false);
+  const pavilionContinuedRef = useRef<string | null>(null);
+  const pavilionFadeRef = useRef<number | null>(null);
+  const [showPavilionGuide, setShowPavilionGuide] = useState(false);
+  const [showLandmarks, setShowLandmarks] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [showOpening, setShowOpening] = useState(true);
@@ -360,6 +371,7 @@ export default function MapPage() {
         distance: getDistance(pos[0], pos[1], pin.lat, pin.lng),
       }))
       .filter((item) => item.distance <= item.pin.radius &&
+        item.pin.id !== pavilionContinuedRef.current &&
         !(boardedBusRef.current && item.pin.id === 'pin-1'))
       .sort((a, b) => a.distance - b.distance);
 
@@ -398,6 +410,12 @@ export default function MapPage() {
 
   const playPinAudio = async (pin: LocationPin) => {
     if (!audioRef.current) return;
+    if (pavilionFadeRef.current !== null) window.clearInterval(pavilionFadeRef.current);
+    pavilionFadeRef.current = null;
+    setPavilionContinued(false);
+    setShowPavilionGuide(false);
+    setShowLandmarks(false);
+    if (pin.id === pavilionContinuedRef.current) pavilionContinuedRef.current = null;
 
     const request = ++playbackRequestRef.current;
     setElapsed(0);
@@ -551,6 +569,7 @@ export default function MapPage() {
   useEffect(() => {
     return () => {
       ++playbackRequestRef.current;
+      if (pavilionFadeRef.current !== null) window.clearInterval(pavilionFadeRef.current);
       if (switchTimeoutRef.current) {
         window.clearTimeout(switchTimeoutRef.current);
       }
@@ -576,6 +595,8 @@ export default function MapPage() {
   }, []);
 
   const stopPreviewAudio = () => {
+    if (pavilionFadeRef.current !== null) window.clearInterval(pavilionFadeRef.current);
+    pavilionFadeRef.current = null;
     ++playbackRequestRef.current;
     isSwitchingRef.current = false;
     setLeavingBus(false);
@@ -601,6 +622,34 @@ export default function MapPage() {
     setDebugPlayback(true);
     setDebugPinId(activePin?.id ?? pins[0]?.id ?? '');
     stopPreviewAudio();
+  };
+
+  const continuePavilionWalk = () => {
+    if (!activePin || !['pin-11', 'pin-11b', 'pin-12'].includes(activePin.id) || pavilionContinuedRef.current === activePin.id) return;
+    pavilionContinuedRef.current = activePin.id;
+    setPavilionContinued(true);
+    const audio = audioRef.current;
+    if (!audio || audio.paused) { setIsPlaying(false); return; }
+    const startVolume = audio.volume;
+    const startedAt = performance.now();
+    pavilionFadeRef.current = window.setInterval(() => {
+      const progress = Math.min(1, (performance.now() - startedAt) / 1200);
+      audio.volume = startVolume * (1 - progress);
+      if (progress === 1) {
+        window.clearInterval(pavilionFadeRef.current!);
+        pavilionFadeRef.current = null;
+        audio.pause();
+        audio.volume = 1;
+        setIsPlaying(false);
+      }
+    }, 30);
+  };
+
+  const goBackToPavilion = () => {
+    const pin = pins.find(candidate => candidate.id === activePin?.id);
+    if (!pin || !['pin-11', 'pin-11b', 'pin-12'].includes(pin.id)) return;
+    playbackField.prepare();
+    void playPinAudio(pin);
   };
 
   const previewDebugPin = (id: string) => {
@@ -687,7 +736,7 @@ export default function MapPage() {
   };
 
   const toggleAudio = () => {
-    if (isSwitchingRef.current) return;
+    if (isSwitchingRef.current || pavilionContinued) return;
     playbackField.prepare();
     if (!audioRef.current || !activePin) return;
 
@@ -716,6 +765,7 @@ export default function MapPage() {
   const canBoardBus = activePin?.id === 'pin-1' && activePin.audioUrl !== BOARDING_AUDIO_URL;
   const boardBus = () => {
     if (!canBoardBus || !activePin || isSwitchingRef.current) return;
+    setShowBoardingInstructions(false);
     if (switchTimeoutRef.current !== null) window.clearTimeout(switchTimeoutRef.current);
     switchTimeoutRef.current = null;
     if (!debugPlaybackRef.current) boardedBusRef.current = true;
@@ -736,6 +786,12 @@ export default function MapPage() {
     setWalking(false);
   }, [walking, userPos, pins, debugPlayback, activePin, leavingBus, arScene, handScene]);
 
+  const pavilionPrompt = !showOpening && ['pin-11', 'pin-11b', 'pin-12'].includes(activePin?.id ?? '') ? (<motion.section className="pavilion-instructions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .65 }}>
+          <h1>{pavilionContinued ? 'Ready for the next stretch?' : 'Stay here for this story.'}</h1>
+          <p>{pavilionContinued ? (activePin?.id === 'pin-12' ? 'Follow the directions to the Amenities Centre. Begin when you are ready to move.' : 'Follow the path along the reservoir to find the next pavilion. Begin when you are ready to move.') : 'Find a comfortable place at the pavilion. This is a listening stop.'}</p>
+          {activePin?.id === 'pin-12' && !pavilionContinued && <button type="button" className="direction-guide-link" onClick={() => setShowLandmarks(true)}><span className="phone-info-icon" aria-hidden="true">i</span><span>View landmarks</span></button>}
+          {pavilionContinued ? <button type="button" className="direction-guide-link" onClick={() => setShowPavilionGuide(true)}><span className="phone-info-icon" aria-hidden="true">i</span><span>View direction guides</span></button> : null}
+        </motion.section>) : null;
   return (
     <div inert={!!arScene || !!handScene} className={`relative w-full h-full bg-zinc-950${darkMap ? " dark-map" : ""}${showOpening ? " opening-active" : ""}`}>
       <div hidden={showOpening} className="map-header absolute top-0 left-0 right-0 z-[1000] pointer-events-none">
@@ -777,7 +833,7 @@ export default function MapPage() {
           )}
         </aside>
       )}
-      {hasStarted && <DebugAudioPanel pins={navigationPins} enabled={debugPlayback} selectedId={debugPinId}
+      {hasStarted && <DebugAudioPanel pins={pins} enabled={debugPlayback} selectedId={debugPinId}
         activeId={activePin?.id} playing={isPlaying} elapsed={elapsed} duration={duration}
         onEnter={enterDebugPlayback} onExit={exitDebugPlayback} onPreview={previewDebugPin}
         onTogglePlayback={toggleAudio} onSeek={seekAudio} />}
@@ -844,23 +900,59 @@ export default function MapPage() {
         </MapContainer>
       </div>
 
-      {hasStarted && <MapSubtitles audioRef={audioRef}
+      <AnimatePresence>
+        {!showOpening && showBoardingInstructions && (!activePin || activePin.id === 'pin-1') && <motion.section className="map-boarding-instructions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.8 }} aria-label="Boarding instructions">
+          <h1>Wait for bus 166 at<br />Ang Mo Kio Interchange</h1>
+          <motion.div className="map-boarding-copy" animate={{ opacity: subtitlesStarted ? 0 : 1 }} transition={{ duration: 0.65 }} aria-hidden={subtitlesStarted}>
+            <p>Board the bus and settle<br />in.</p>
+            <p>Remember to head<br />upstairs and sit near the<br />front when a seat is<br />available.</p>
+            <p>Start once you are<br />seated.</p>
+          </motion.div>
+        </motion.section>}
+      </AnimatePresence>
+      <AnimatePresence>
+        {!showOpening && !walking && !leavingBus && (activePin?.id === 'pin-8' || activePin?.id === 'pin-9') && <motion.section className="map-boarding-instructions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.65 }} aria-label="Decide to step outside or stay on board">
+          <h1 className={activePin?.id === 'pin-9' ? 'decision-pulse' : undefined}>{activePin?.id === 'pin-8' ? <>At the next stop, step outside<br />or stay on board.<span style={{ display: 'block', marginTop: 12 }}>The choice is yours.</span></> : <>Decide to step outside<br />or stay on board...</>}</h1>
+        </motion.section>}
+      </AnimatePresence>
+      <AnimatePresence>
+        {!showOpening && ((walking && leavingBus) || activePin?.id === 'pin-9b') && <motion.section className="map-boarding-instructions fig-tree-instructions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.65 }} aria-label="Find the fig tree">
+          <h1>Find the fig tree</h1>
+          <div className="fig-tree-copy">
+            <p>Go down the stairs</p>
+            <p>Through the tunnel</p>
+            <p>Towards the park</p>
+            <button type="button" className="phone-help-link" disabled title="Route photos coming soon"><span aria-hidden="true" className="phone-info-icon">i</span><span>Show me photos</span></button>
+          </div>
+        </motion.section>}
+      </AnimatePresence>
+
+      {hasStarted && !leavingBus && activePin?.id !== 'pin-9b' && <MapSubtitles key={activePin?.audioUrl ?? 'no-track'} audioRef={audioRef}
+        leadingContent={pavilionPrompt}
+        hideCue={pavilionContinued}
+        onSubtitlesStarted={setSubtitlesStarted}
+        onOpenDirections={activePin?.id === 'pin-12b' ? () => setShowDirectionGuides(true) : undefined}
+        belowBoardingHeading={activePin?.id === 'pin-8' || activePin?.id === 'pin-9' || (showBoardingInstructions && activePin?.id === 'pin-1' && activePin.audioUrl !== BOARDING_AUDIO_URL)}
         trackId={activePin?.audioUrl === BOARDING_AUDIO_URL ? 'boarding' : activePin?.id}
         audioUrl={activePin?.audioUrl} />}
+      <AnimatePresence>{showDirectionGuides && <DirectionGuides onClose={() => setShowDirectionGuides(false)} />}</AnimatePresence>
+      <AnimatePresence>{showPavilionGuide && <DirectionGuides singlePavilion={activePin?.id !== 'pin-12'} variant={activePin?.id === 'pin-12' ? 'amenities' : 'bus'} pavilionNumber={activePin?.id === 'pin-11b' ? 3 : 2} onClose={() => setShowPavilionGuide(false)} />}</AnimatePresence>
+      <AnimatePresence>{showLandmarks && <DirectionGuides variant="landmarks" onClose={() => setShowLandmarks(false)} />}</AnimatePresence>
       {(activePin || canLeaveBus) && <div className="audio-bottom-wash" aria-hidden="true" />}
       <AnimatePresence>
         {(activePin || canLeaveBus) && (
           <motion.div initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 16, opacity: 0 }}
             className="audio-card absolute z-[1000] text-zinc-800">
-            {(canLeaveBus || (activePin && encounterLabels[activePin.id])) &&
+            {(canLeaveBus || (SHOW_AR_FILTER_BUTTONS && activePin && encounterLabels[activePin.id])) &&
               <div className="journey-actions">
-                {activePin && encounterLabels[activePin.id] &&
+                {SHOW_AR_FILTER_BUTTONS && activePin && encounterLabels[activePin.id] &&
                   <button type="button" className="journey-ar-launch" onClick={openAR}>{encounterLabels[activePin.id]}</button>}
                 {canLeaveBus &&
                   <button type="button" className="journey-ar-launch" onClick={() => void leaveBus()}>I Left the Bus</button>}
               </div>}
             {canBoardBus &&
               <button type="button" className="journey-ar-launch" onClick={boardBus}>I'm on the bus</button>}
+            <AnimatePresence mode="wait">{(activePin?.id === 'pin-11' || activePin?.id === 'pin-11b' || activePin?.id === 'pin-12') && <motion.button key={pavilionContinued ? 'pavilion-back' : 'pavilion-continue'} type="button" className="journey-ar-launch" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .4 }} onClick={pavilionContinued ? goBackToPavilion : continuePavilionWalk}>{pavilionContinued ? 'Go back' : activePin?.id === 'pin-12' ? 'Continue walking – end of walk' : `Continue walking – start part ${activePin?.id === 'pin-11b' ? 3 : 2}`}</motion.button>}</AnimatePresence>
             {leavingBus && <p role="status" className="mb-2 text-xs">Switching to the walking route…</p>}
             {debugPlayback && <p className="debug-audio-status mb-2 text-xs font-bold">DEBUG AUDIO PREVIEW - GPS triggers paused</p>}
             <h2 className="mb-4 truncate font-mono text-sm font-normal tracking-wide" title={activePin?.name}>{activePin?.name ?? 'Optional MacRitchie walk'}</h2>

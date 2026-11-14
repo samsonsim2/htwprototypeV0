@@ -176,7 +176,7 @@ body {
 .opening-active .leaflet-control-container { visibility: hidden; }
 .journey-opening { background: transparent; }
 .opening-copy, .is-ready .opening-copy { opacity: 1; transition: opacity 700ms ease; }
-.stage-begin .opening-copy, .stage-instructions .opening-copy { opacity: 0; pointer-events: none; }
+.stage-begin .opening-copy, .stage-instructions .opening-copy, .stage-phone .opening-copy { opacity: 0; pointer-events: none; }
 .reveal-chunk { display: inline-block; opacity: 0; animation: mysterious-reveal 1.3s ease both; }
 @keyframes mysterious-reveal { from { opacity: 0; filter: blur(5px); transform: translateY(2px); } to { opacity: 1; filter: blur(0); transform: translateY(0); } }
 .opening-note { bottom: max(100px, calc(env(safe-area-inset-bottom) + 90px)); }
@@ -186,6 +186,41 @@ body {
 .journey-instructions .journey-continue { animation: prompt-appear .7s 1.4s both; }
 @keyframes prompt-appear { from { opacity: 0; } to { opacity: .65; } }
 .journey-instructions { background: rgba(0,0,0,.82); }
+.instruction-step { position: absolute; inset: 0; }
+.phone-step { overflow: hidden; cursor: pointer; display: flex; flex-direction: column; padding: max(32px, env(safe-area-inset-top)) 22px 90px; box-sizing: border-box; }
+.phone-step h2 { position: static; flex: 0 0 auto; margin: clamp(0px, 4dvh, 38px) 0 0; font-size: clamp(19px, 3.1dvh, 23px); }
+.phone-copy { position: static; flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; margin: 16px 0 0; font-size: clamp(8.8px, 1.52dvh, 12px); line-height: 1.2; }
+.phone-copy p { flex: 0 0 auto; margin-bottom: clamp(18px, 3.6dvh, 36px); }
+.phone-copy .phone-iphone-note { margin-bottom: 12px; }
+.phone-step .journey-continue { position: absolute; bottom: max(32px, calc(env(safe-area-inset-bottom) + 22px)); left: 0; margin: 0; }
+.phone-help-link { display: flex; align-items: baseline; gap: 8px; padding: 4px 0; border: 0; background: none; color: #aaa; font: inherit; font-weight: 300; text-decoration: none; text-align: left; cursor: pointer; animation: mysterious-reveal 1.1s .5s both; }
+.phone-help-link > span:last-child { padding-bottom: 2px; background-image: repeating-linear-gradient(to right, currentColor 0 3px, transparent 3px 6px); background-size: 100% .5px; background-position: left bottom; background-repeat: no-repeat; }
+.phone-info-icon { flex: 0 0 17px; width: 17px; height: 17px; border-radius: 50%; background: #aaa; color: #333; font-size: 13px; line-height: 17px; text-align: center; font-weight: 400; text-decoration: none; border: 0; }
+.phone-help-backdrop { position: absolute; inset: 0; z-index: 1; display: flex; align-items: center; padding: 22px; background: rgba(0,0,0,.35); animation: instruction-enter .4s ease both; }
+.phone-help-panel { position: relative; width: 100%; max-height: calc(100dvh - 44px); overflow-y: auto; box-sizing: border-box; padding: 36px 18px 18px; border: 0; border-radius: 0; background: #fff; color: #222; font-size: 10.4px; line-height: 1.35; cursor: auto; }
+.phone-help-panel h2 { margin: 0 0 24px; font-size: 16px; font-weight: 400; }
+.phone-help-panel > p { margin: 26px 0 0; }
+.phone-help-panel > p:last-child { margin-top: 14px; }
+.phone-help-panel ol { padding-left: 20px; }
+.phone-help-panel li { padding-left: 4px; margin-bottom: 20px; }
+.phone-help-panel li p { margin: 6px 0 0; }
+.phone-help-close { position: absolute; top: 0; right: 0; width: 44px; height: 44px; padding: 0; border: 0; background: none; color: #222; font-size: 0; cursor: pointer; }
+.phone-help-close::before, .phone-help-close::after { content: ''; position: absolute; top: 14px; right: 6px; width: 18px; height: 1px; background: currentColor; transform: rotate(45deg); }
+.phone-help-close::after { transform: rotate(-45deg); }
+.map-boarding-instructions { position: absolute; inset: 0; z-index: 500; pointer-events: none; color: #111; font-family: Favorit, Arial, sans-serif; }
+.map-boarding-instructions h1 { position: absolute; top: max(84px, calc(env(safe-area-inset-top) + 76px)); left: 26px; right: 18px; margin: 0; font-size: clamp(19px, 4.8vw, 25px); font-weight: 400; line-height: 1.08; }
+.map-boarding-copy { position: absolute; top: max(174px, calc(env(safe-area-inset-top) + 166px)); left: 26px; font-size: clamp(13px, 2.55dvh, 17px); line-height: 1.22; }
+.map-boarding-copy p { margin: 0 0 clamp(16px, 3.5dvh, 28px); }
+.dark-map .map-boarding-instructions { color: #e7e7e5; }
+.fig-tree-copy { position: absolute; top: 38%; left: 26px; font-size: clamp(14px, 2.55dvh, 17px); line-height: 1.25; }
+.fig-tree-copy p { margin: 0 0 clamp(22px, 4dvh, 34px); }
+.fig-tree-copy .phone-help-link { color: #666; animation: none; pointer-events: auto; cursor: default; }
+.dark-map .fig-tree-copy .phone-help-link { color: #aaa; }
+.decision-pulse { animation: decision-breathe 1.2s ease-in-out infinite; }
+@keyframes decision-breathe { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) { .decision-pulse { animation: none; } }
+@media (max-height: 650px) { .phone-step h2 { margin-top: 0; } .phone-copy { margin-top: 12px; } .phone-copy .phone-iphone-note { margin-bottom: 6px; } }
+@media (prefers-reduced-motion: reduce) { .phone-help-link, .phone-help-backdrop { animation: none; } }
 @media (prefers-reduced-motion: reduce) { .reveal-chunk, .journey-begin, .intro-continue { animation: none; opacity: 1; } .map-scene, .opening-copy { transition: none; } }
 
 .opening-veil { position: absolute; inset: 0; opacity: 1; transition: opacity 1s ease; pointer-events: none; }
@@ -208,10 +243,36 @@ body {
 
 .map-subtitles { position: absolute; z-index: 900; top: max(82px, calc(env(safe-area-inset-top) + 72px)); left: max(24px, env(safe-area-inset-left)); right: max(24px, env(safe-area-inset-right)); pointer-events: none; color: #242424; font-family: Favorit, Arial, sans-serif; font-size: clamp(15px, 4vw, 18px); line-height: 1.3; text-align: left; text-shadow: 0 1px 8px #f2f2f2, 0 0 18px #f2f2f2; }
 .map-subtitles p { margin: 0; max-width: 100%; }
+.direction-guide-link { display: flex; align-items: center; gap: 8px; pointer-events: auto; margin-top: 22px; padding: 5px 0; border: 0; background: none; color: inherit; font: inherit; font-size: 14px; cursor: pointer; }
+.map-subtitles .direction-guide-link span { display: inline-block; }
+.direction-guide-link > span:last-child { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: .5px; }
+.walk-end-directions, .walking-stop-prompt { margin-bottom: 24px; }
+.walk-end-directions > p { font-size: 16px; line-height: 1.3; }
+.walk-end-directions .direction-guide-link { margin-top: 12px; }
+.direction-guides { position: absolute; inset: 0; z-index: 3000; isolation: isolate; color: white; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.direction-guides-close { color: white; top: -10px; right: -10px; z-index: 10; }
+.direction-guides-content { position: relative; width: calc(100% - 76px); max-width: 420px; }
+.direction-guide-instruction { margin: 0 0 24px; padding-right: 34px; font-size: clamp(13.6px, 3.6vw, 17.6px); line-height: 1.25; }
+.direction-guide-step { display: block; margin-bottom: 6px; font-size: .8em; opacity: .7; }
+.direction-photo-single { cursor: default; }
+.pavilion-instructions { position: relative; pointer-events: auto; color: #242424; font-family: Favorit, Arial, sans-serif; text-shadow: none; }
+.pavilion-instructions h1 { font-size: 25px; line-height: 1.15; font-weight: 700; margin: 0 0 16px; }
+.pavilion-instructions p { font-size: 15px; line-height: 1.35; margin: 0; }
+.pavilion-continue { margin-top: 18px; padding: 10px 16px; border: 0; border-radius: 0; background: #111; color: white; font: inherit; font-size: 13px; cursor: pointer; }
+.dark-map .pavilion-instructions { color: #e7e7e5; }
+.direction-photo-stack { position: relative; width: 100%; aspect-ratio: 3 / 2; }
+.direction-photo-glow { position: absolute; top: 50%; left: 50%; width: max(180%, 650px); height: max(330%, 900px); transform: translate(-50%, -50%); z-index: -1; pointer-events: none; background: radial-gradient(ellipse at center, rgba(8,32,22,.97) 0%, rgba(8,32,22,.9) 35%, rgba(8,32,22,.65) 60%, rgba(8,32,22,.25) 80%, rgba(8,32,22,0) 100%); }
+.direction-photo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center; border: 0; border-radius: 0; touch-action: pan-y; user-select: none; cursor: grab; }
+.direction-photo:active { cursor: grabbing; }
+.direction-guide-next { display: block; margin: 44px auto 0; padding: 12px; border: 0; background: none; color: white; font: inherit; font-size: 13px; cursor: pointer; }
+.direction-guide-count { text-align: center; margin: 4px 0 0; font-size: 11px; opacity: .6; }
+.map-subtitles.below-boarding-heading { top: max(194px, calc(env(safe-area-inset-top) + 186px)); }
 .map-subtitles span { display: block; }
 .dark-map .map-subtitles { color: #e8e6df; text-shadow: 0 1px 8px #000, 0 0 18px #000; }
 
 .map-subtitles { --speaker-accent: var(--speaker-light); border-left: 2px solid var(--speaker-accent); padding-left: 12px; }
+.map-subtitles.with-directions { border-left: 0; padding-left: 0; }
+.map-subtitles.with-directions .subtitle-cue-block { border-left: 2px solid var(--speaker-accent); padding-left: 12px; }
 .subtitle-speaker { margin-bottom: 7px; color: var(--speaker-accent); font-size: 11px; font-weight: 700; letter-spacing: .1em; line-height: 1.2; text-transform: uppercase; }
 .dark-map .map-subtitles { --speaker-accent: var(--speaker-dark); }
 
