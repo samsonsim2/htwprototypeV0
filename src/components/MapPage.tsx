@@ -398,7 +398,9 @@ export default function MapPage() {
     setLeavingBus(true);
     isSwitchingRef.current = true;
     try {
-      if (!audio.paused && !audio.ended) await fadeOutAndStopAudio(audio);
+      // Start within the tap gesture, without waiting for the GPS fade.
+      // Mobile browsers can reject playback after an asynchronous fade.
+      audio.pause();
       if (request === playbackRequestRef.current) await playPinAudio(getOffPin);
     } finally {
       if (request + 1 === playbackRequestRef.current) {
