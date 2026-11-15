@@ -20,6 +20,12 @@ View your app in AI Studio: https://ai.studio/apps/33567f55-1097-4bef-8626-a7225
    `npm run dev`
 # htwprototypeV0
 
+## Live bus 166 arrivals
+
+Set `LTA_ACCOUNT_KEY` in `.env.local` (local use) or the server environment. This secret is read only by the server. Both boarding stops show the next double-decker towards Clementi: Ang Mo Kio Interchange (54009) and Mt Alvernia Hospital (51069). The display checks all three buses supplied by LTA, refreshes every 20 seconds while visible, and reports when no double-decker is listed or live data is unavailable.
+
+Development: `npm run dev`. Production: `npm run build` followed by `npm start`. `npm run preview` also supports the arrivals endpoint. A static-only deployment needs a separate backend for `/api/bus-arrivals`; uploading `dist` alone does not provide live arrivals.
+
 ## AR encounters (prototype)
 
 - Stop 1: two procedural animated mynas. Stop 1b: a procedural pink bun on a leaf. Stop 6 / Opp Blk 244: a ground-placed rubber tree with a tapping cut, latex drops and a filling collection cup. Tap its trunk or use “Tap the tree”.

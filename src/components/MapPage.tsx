@@ -17,6 +17,7 @@ import MagneticField from './MagneticField';
 import MapDebugOverlays from './MapDebugOverlays';
 import DebugAudioPanel from './DebugAudioPanel';
 import MapSubtitles from './MapSubtitles';
+import BusArrival from './BusArrival';
 import DirectionGuides from './DirectionGuides';
 import JourneyOpening from './JourneyOpening';
 import usePlaybackField from './usePlaybackField';
@@ -903,8 +904,11 @@ export default function MapPage() {
       </div>
 
       <AnimatePresence>
+        {!showOpening && activePin?.id === 'pin-13' && <motion.section className="map-boarding-instructions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.8 }} aria-label="Mt Alvernia boarding instructions">
+          <h1>Wait for bus 166 at<br />Mt Alvernia Hospital station<BusArrival stop="51069" /></h1>
+        </motion.section>}
         {!showOpening && showBoardingInstructions && (!activePin || activePin.id === 'pin-1') && <motion.section className="map-boarding-instructions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.8 }} aria-label="Boarding instructions">
-          <h1>Wait for bus 166 at<br />Ang Mo Kio Interchange</h1>
+          <h1>Wait for bus 166 at<br />Ang Mo Kio Interchange<BusArrival stop="54009" /></h1>
           <motion.div className="map-boarding-copy" animate={{ opacity: subtitlesStarted ? 0 : 1 }} transition={{ duration: 0.65 }} aria-hidden={subtitlesStarted}>
             <p>Board the bus and settle<br />in.</p>
             <p>Remember to head<br />upstairs and sit near the<br />front when a seat is<br />available.</p>
@@ -934,7 +938,7 @@ export default function MapPage() {
         hideCue={pavilionContinued}
         onSubtitlesStarted={setSubtitlesStarted}
         onOpenDirections={activePin?.id === 'pin-12b' ? () => setShowDirectionGuides(true) : undefined}
-        belowBoardingHeading={activePin?.id === 'pin-8' || activePin?.id === 'pin-9' || (showBoardingInstructions && activePin?.id === 'pin-1' && activePin.audioUrl !== BOARDING_AUDIO_URL)}
+        belowBoardingHeading={activePin?.id === 'pin-13' || activePin?.id === 'pin-8' || activePin?.id === 'pin-9' || (showBoardingInstructions && activePin?.id === 'pin-1' && activePin.audioUrl !== BOARDING_AUDIO_URL)}
         trackId={activePin?.audioUrl === BOARDING_AUDIO_URL ? 'boarding' : activePin?.id}
         audioUrl={activePin?.audioUrl} />}
       <AnimatePresence>{showDirectionGuides && <DirectionGuides onClose={() => setShowDirectionGuides(false)} />}</AnimatePresence>
@@ -1012,3 +1016,5 @@ export default function MapPage() {
     </div>
   );
 }
+
+
