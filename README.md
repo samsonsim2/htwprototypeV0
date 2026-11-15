@@ -26,6 +26,10 @@ Set `LTA_ACCOUNT_KEY` in `.env.local` (local use) or the server environment. Thi
 
 Development: `npm run dev`. Production: `npm run build` followed by `npm start`. `npm run preview` also supports the arrivals endpoint. A static-only deployment needs a separate backend for `/api/bus-arrivals`; uploading `dist` alone does not provide live arrivals.
 
+### Vercel
+
+The `api/bus-arrivals.ts` function provides the arrivals backend on Vercel, using the same handler as local development. In the Vercel project's Settings → Environment Variables, add `LTA_ACCOUNT_KEY` for Production (and Preview if needed), then redeploy. Keep the Vite build command (`npm run build`) and output directory (`dist`); no start command is needed on Vercel. Do not expose the key through a `VITE_` variable. To check the deployment, open `/api/bus-arrivals?stop=54009`: it should return JSON with `estimatedArrival` and `updatedAt`. A 503 means the server environment variable is missing; a 502 means the LTA request failed.
+
 ## AR encounters (prototype)
 
 - Stop 1: two procedural animated mynas. Stop 1b: a procedural pink bun on a leaf. Stop 6 / Opp Blk 244: a ground-placed rubber tree with a tapping cut, latex drops and a filling collection cup. Tap its trunk or use “Tap the tree”.
