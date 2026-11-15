@@ -32,6 +32,12 @@ The `api/bus-arrivals.ts` function provides the arrivals backend on Vercel, usin
 
 ## AR encounters (prototype)
 
+## Audio transition preview
+
+Open the top FADE button after starting the journey. Play a stop and use “Crossfade to next stop” to hear the same transition used by GPS. The graph shows outgoing (orange) and incoming (green) volume with a moving playhead. Duration (2–40 seconds), curve and shape are adjustable; the default is an 18-second smooth S-curve. Settings are saved on this browser/device and apply to subsequent transitions. Reset restores the default. Toggle FADE or use its close button to hide the controls; “Stop preview / resume GPS” stops preview and resumes GPS triggers. Restart or Exit cancels a preview. Run `npx tsx --test scripts/validate-fade.test.ts` for curve checks.
+
+## AR encounters (prototype)
+
 - Stop 1: two procedural animated mynas. Stop 1b: a procedural pink bun on a leaf. Stop 6 / Opp Blk 244: a ground-placed rubber tree with a tapping cut, latex drops and a filling collection cup. Tap its trunk or use “Tap the tree”.
 - Stop 4 / Blk 209: a MediaPipe hand camera filter. Show one open palm for a tomato, then turn the hand over to grow red hair. The effects are illustrated camera overlays attached to tracked landmarks, with side stabilization and matching camera cropping; they are not ground-placed objects. Use the rear camera in good light with the whole hand visible.
 - While any of these tracks is active (including Debug audio preview), use the black capsule above the audio player to open its camera experience. The same audio element continues playing; GPS track switching is held until AR closes. Subtitles and audio pause/resume remain available in the camera view.

@@ -16,6 +16,7 @@ import { journeyPins, walkingPath, isWalkingStop, WALKING_STOP_IDS, nearWalkingP
 import MagneticField from './MagneticField';
 import MapDebugOverlays from './MapDebugOverlays';
 import DebugAudioPanel from './DebugAudioPanel';
+import { fadeGain, loadFade, type FadeSettings } from './audioFade';
 import MapSubtitles from './MapSubtitles';
 import BusArrival from './BusArrival';
 import DirectionGuides from './DirectionGuides';
@@ -298,6 +299,24 @@ export default function MapPage() {
   const [showLocationNames, setShowLocationNames] = useState(false);
   const [showGeofences, setShowGeofences] = useState(true);
   const [debugPlayback, setDebugPlayback] = useState(false);
+  const [fadeSettings, setFadeSettings] = useState(loadFade);
+  const [fadeProgress, setFadeProgress] = useState<number | null>(null);
+  const audioCardRef = useRef<HTMLDivElement | null>(null);
+  const [audioClearance, setAudioClearance] = useState(260);
+  useEffect(() => {
+    const card = audioCardRef.current;
+    if (!card) return;
+    const measure = () => setAudioClearance(card.getBoundingClientRect().height + (parseFloat(getComputedStyle(card).bottom) || 18) + 16);
+    const observer = new ResizeObserver(measure);
+    observer.observe(card);
+    window.addEventListener('resize', measure);
+    measure();
+    return () => { observer.disconnect(); window.removeEventListener('resize', measure); };
+  }, [hasStarted, activePin, showOpening]);
+  const changeFadeSettings = (value: FadeSettings) => {
+    setFadeSettings(value);
+    try { localStorage.setItem('htw-audio-fade', JSON.stringify(value)); } catch { /* Session settings still apply. */ }
+  };
   const [arScene, setArScene] = useState<{ kind: EncounterKind; trackId: string; audioUrl: string; launch: GroundARLaunch } | null>(null);
   const [handScene, setHandScene] = useState<{ trackId: string; audioUrl: string; launch: HandCameraLaunch } | null>(null);
   const handLaunchRef = useRef<HandCameraLaunch | null>(null);
@@ -333,14 +352,13 @@ export default function MapPage() {
   const isSwitchingRef = useRef(false);
   const switchTimeoutRef = useRef<number | null>(null);
 
-  const fadeOutAndStopAudio = (audioEl: HTMLAudioElement, duration = 12000): Promise<void> => new Promise(resolve => {
+  const fadeOutAndStopAudio = (audioEl: HTMLAudioElement, settings = fadeSettings): Promise<void> => new Promise(resolve => {
     const startVolume = audioEl.volume;
     const startedAt = performance.now();
 
     const intervalId = window.setInterval(() => {
-      const progress = Math.min(1, (performance.now() - startedAt) / duration);
-      // Fade exponentially to -60 dB, then set exact silence at the end.
-      audioEl.volume = progress >= 1 ? 0 : startVolume * Math.pow(0.001, progress);
+      const progress = Math.min(1, (performance.now() - startedAt) / (settings.seconds * 1000));
+      audioEl.volume = startVolume * (1 - fadeGain(progress, settings));
 
       if (progress >= 1) {
         window.clearInterval(intervalId);
@@ -449,6 +467,9 @@ export default function MapPage() {
     setAudioError(null);
 
     const mainAudio = audioRef.current;
+    const settings = { ...fadeSettings };
+    let fadingOut: HTMLAudioElement | null = null;
+    let rampStarted = false;
 
     try {
       const hasCurrentAudio = !!mainAudio.src && !mainAudio.paused;
@@ -476,7 +497,7 @@ export default function MapPage() {
             }
 
             fadingAudiosRef.current.push(outgoingAudio);
-            fadeOutAndStopAudio(outgoingAudio);
+            fadingOut = outgoingAudio;
 
             mainAudio.pause();
             mainAudio.currentTime = 0;
@@ -526,20 +547,42 @@ export default function MapPage() {
       if (request !== playbackRequestRef.current) return;
       mainAudio.src = nextPin.audioUrl;
       mainAudio.currentTime = 0;
-      mainAudio.volume = 1;
+      mainAudio.volume = fadingOut ? 0 : 1;
 
       setActivePin(nextPin);
 
       await mainAudio.play();
+      if (request === playbackRequestRef.current && fadingOut) {
+        rampStarted = true;
+        void fadeOutAndStopAudio(fadingOut, settings);
+        const startedAt = performance.now();
+        setFadeProgress(0);
+        const intervalId = window.setInterval(() => {
+          const progress = Math.min(1, (performance.now() - startedAt) / (settings.seconds * 1000));
+          if (request === playbackRequestRef.current) {
+            mainAudio.volume = fadeGain(progress, settings);
+            setFadeProgress(progress);
+          }
+          if (progress >= 1 || request !== playbackRequestRef.current) {
+            window.clearInterval(intervalId);
+            fadeIntervalsRef.current = fadeIntervalsRef.current.filter(id => id !== intervalId);
+            setFadeProgress(null);
+            if (request === playbackRequestRef.current) isSwitchingRef.current = false;
+          }
+        }, 30);
+        fadeIntervalsRef.current.push(intervalId);
+      }
       if (request === playbackRequestRef.current) setIsPlaying(true);
     } catch (err) {
       if (request !== playbackRequestRef.current) return;
       console.warn('Failed to switch to new pin audio:', err);
+      if (fadingOut) void fadeOutAndStopAudio(fadingOut, settings);
+      mainAudio.volume = 1;
       setIsPlaying(false);
       setAudioError('Tap play to start audio.');
       setActivePin(nextPin);
     } finally {
-      if (request === playbackRequestRef.current) isSwitchingRef.current = false;
+      if (request === playbackRequestRef.current && !rampStarted) isSwitchingRef.current = false;
     }
   };
 
@@ -598,6 +641,7 @@ export default function MapPage() {
   }, []);
 
   const stopPreviewAudio = () => {
+    setFadeProgress(null);
     if (pavilionFadeRef.current !== null) window.clearInterval(pavilionFadeRef.current);
     pavilionFadeRef.current = null;
     ++playbackRequestRef.current;
@@ -670,6 +714,16 @@ export default function MapPage() {
     stopPreviewAudio();
     debugPlaybackRef.current = false;
     setDebugPlayback(false);
+  };
+
+  const previewCrossfade = (id: string) => {
+    const pin = pins.find(candidate => candidate.id === id);
+    if (!pin || isSwitchingRef.current || fadeProgress !== null) return;
+    debugPlaybackRef.current = true;
+    setDebugPlayback(true);
+    setDebugPinId(pin.id);
+    playbackField.prepare();
+    void switchToPinAudio(pin);
   };
 
   const openAR = () => {
@@ -839,7 +893,10 @@ export default function MapPage() {
       {hasStarted && <DebugAudioPanel pins={pins} enabled={debugPlayback} selectedId={debugPinId}
         activeId={activePin?.id} playing={isPlaying} elapsed={elapsed} duration={duration}
         onEnter={enterDebugPlayback} onExit={exitDebugPlayback} onPreview={previewDebugPin}
-        onTogglePlayback={toggleAudio} onSeek={seekAudio} />}
+        onTogglePlayback={toggleAudio} onSeek={seekAudio}
+        fadeSettings={fadeSettings} onFadeSettings={changeFadeSettings} fadeProgress={fadeProgress}
+        audioClearance={audioClearance}
+        onCrossfade={previewCrossfade} />}
       {hasStarted && (
         <FieldDebugPanel settings={fieldSettings} onChange={setFieldSettings}
           mapOpacity={mapOpacity} onMapOpacity={setMapOpacity} />
@@ -948,7 +1005,7 @@ export default function MapPage() {
       <AnimatePresence>
         {(activePin || canLeaveBus) && (
           <motion.div initial={{ y: 16, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 16, opacity: 0 }}
-            className="audio-card absolute z-[1000] text-zinc-800">
+            ref={audioCardRef} className="audio-card absolute z-[1000] text-zinc-800">
             {(canLeaveBus || (SHOW_AR_FILTER_BUTTONS && activePin && encounterLabels[activePin.id])) &&
               <div className="journey-actions">
                 {SHOW_AR_FILTER_BUTTONS && activePin && encounterLabels[activePin.id] &&

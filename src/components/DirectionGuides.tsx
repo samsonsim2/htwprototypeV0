@@ -7,7 +7,7 @@ import thirdPavilion from '../assets/images/DSC04668.jpg';
 import victorian from '../assets/images/DSC04663.jpg';
 import tembusu from '../assets/images/DSC00005.jpg';
 import amenitiesBridge from '../assets/images/DSC04674.jpg';
-import restStop from '../assets/images/RestStop.png';
+import restStop from '../assets/images/RestStop.jpg';
 
 const busCards = [
   { image: bus, text: 'Cross the overhead bridge to the furthest end and board the next bus 166.' },
