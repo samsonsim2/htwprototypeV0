@@ -277,6 +277,7 @@ export default function MapPage() {
   const [userPos, setUserPos] = useState<[number, number] | null>(null);
   const [activePin, setActivePin] = useState<LocationPin | null>(null);
   const boardedBusRef = useRef(false);
+  const [mtAlverniaBoarded, setMtAlverniaBoarded] = useState(false);
   const [showBoardingInstructions, setShowBoardingInstructions] = useState(true);
   const [subtitlesStarted, setSubtitlesStarted] = useState(false);
   const [showDirectionGuides, setShowDirectionGuides] = useState(false);
@@ -430,7 +431,7 @@ export default function MapPage() {
     }
   };
 
-  const playPinAudio = async (pin: LocationPin) => {
+  const playPinAudio = async (pin: LocationPin, boardingConfirmed = false) => {
     if (!audioRef.current) return;
     if (pavilionFadeRef.current !== null) window.clearInterval(pavilionFadeRef.current);
     pavilionFadeRef.current = null;
@@ -445,6 +446,15 @@ export default function MapPage() {
     setDuration(0);
     setAudioError(null);
     setActivePin(pin);
+
+    if (pin.id === 'pin-13' && !boardingConfirmed) {
+      setMtAlverniaBoarded(false);
+      audioRef.current.pause();
+      audioRef.current.removeAttribute('src');
+      audioRef.current.load();
+      setIsPlaying(false);
+      return;
+    }
 
     audioRef.current.src = pin.audioUrl;
     audioRef.current.volume = 1;
@@ -463,6 +473,10 @@ export default function MapPage() {
 
   const switchToPinAudio = async (nextPin: LocationPin) => {
     if (!audioRef.current || isSwitchingRef.current) return;
+    if (nextPin.id === 'pin-13') {
+      await playPinAudio(nextPin);
+      return;
+    }
 
     const request = ++playbackRequestRef.current;
     isSwitchingRef.current = true;
@@ -796,6 +810,7 @@ export default function MapPage() {
 
   const toggleAudio = () => {
     if (isSwitchingRef.current || pavilionContinued) return;
+    if (activePin?.id === 'pin-13' && !mtAlverniaBoarded) return;
     playbackField.prepare();
     if (!audioRef.current || !activePin) return;
 
@@ -821,7 +836,8 @@ export default function MapPage() {
     }
   };
 
-  const canBoardBus = activePin?.id === 'pin-1' && activePin.audioUrl !== BOARDING_AUDIO_URL;
+  const waitingAtMtAlvernia = activePin?.id === 'pin-13' && !mtAlverniaBoarded;
+  const canBoardBus = (activePin?.id === 'pin-1' && activePin.audioUrl !== BOARDING_AUDIO_URL) || waitingAtMtAlvernia;
   const boardBus = () => {
     if (!canBoardBus || !activePin || isSwitchingRef.current) return;
     setShowBoardingInstructions(false);
@@ -829,6 +845,11 @@ export default function MapPage() {
     switchTimeoutRef.current = null;
     if (!debugPlaybackRef.current) boardedBusRef.current = true;
     playbackField.prepare();
+    if (activePin.id === 'pin-13') {
+      setMtAlverniaBoarded(true);
+      void playPinAudio(activePin, true);
+      return;
+    }
     void playPinAudio({ ...activePin, audioUrl: BOARDING_AUDIO_URL });
   };
 
@@ -963,7 +984,7 @@ export default function MapPage() {
       </div>
 
       <AnimatePresence>
-        {!showOpening && activePin?.id === 'pin-13' && <motion.section className="map-boarding-instructions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.8 }} aria-label="Mt Alvernia boarding instructions">
+        {!showOpening && waitingAtMtAlvernia && <motion.section className="map-boarding-instructions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.8 }} aria-label="Mt Alvernia boarding instructions">
           <h1>Wait for bus 166 at<br />Mt Alvernia Hospital station<BusArrival stop="51069" /></h1>
         </motion.section>}
         {!showOpening && showBoardingInstructions && (!activePin || activePin.id === 'pin-1') && <motion.section className="map-boarding-instructions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.8 }} aria-label="Boarding instructions">
@@ -997,7 +1018,7 @@ export default function MapPage() {
         hideCue={pavilionContinued}
         onSubtitlesStarted={setSubtitlesStarted}
         onOpenDirections={activePin?.id === 'pin-12b' ? () => setShowDirectionGuides(true) : undefined}
-        belowBoardingHeading={activePin?.id === 'pin-13' || activePin?.id === 'pin-8' || activePin?.id === 'pin-9' || (showBoardingInstructions && activePin?.id === 'pin-1' && activePin.audioUrl !== BOARDING_AUDIO_URL)}
+        belowBoardingHeading={waitingAtMtAlvernia || activePin?.id === 'pin-8' || activePin?.id === 'pin-9' || (showBoardingInstructions && activePin?.id === 'pin-1' && activePin.audioUrl !== BOARDING_AUDIO_URL)}
         trackId={activePin?.audioUrl === BOARDING_AUDIO_URL ? 'boarding' : activePin?.id}
         audioUrl={activePin?.audioUrl} />}
       <AnimatePresence>{showDirectionGuides && <DirectionGuides onClose={() => setShowDirectionGuides(false)} />}</AnimatePresence>
@@ -1023,7 +1044,7 @@ export default function MapPage() {
             {debugPlayback && <p className="debug-audio-status mb-2 text-xs font-bold">DEBUG AUDIO PREVIEW - GPS triggers paused</p>}
             <h2 className="mb-4 truncate font-mono text-sm font-normal tracking-wide" title={activePin?.name}>{activePin?.name ?? 'Optional MacRitchie walk'}</h2>
             {activePin && <div className="flex items-start gap-2">
-              <button type="button" onClick={toggleAudio} disabled={leavingBus} aria-label={isPlaying ? 'Pause audio' : 'Play audio'}
+              <button type="button" onClick={toggleAudio} disabled={leavingBus || waitingAtMtAlvernia} aria-label={isPlaying ? 'Pause audio' : 'Play audio'}
                 className="-mt-5 flex h-11 w-11 shrink-0 items-center justify-center rounded-full hover:bg-black/5 focus-visible:outline-2 focus-visible:outline-zinc-800">
                 {isPlaying ? <Pause className="h-4 w-4 fill-current" /> : <Play className="h-4 w-4 fill-current" />}
               </button>
@@ -1076,6 +1097,7 @@ export default function MapPage() {
     </div>
   );
 }
+
 
 
 
