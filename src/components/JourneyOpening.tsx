@@ -127,7 +127,7 @@ export default function JourneyOpening({ settings, onContinue }: { settings: Fie
           <p><Reveal>Make sure your phone has</Reveal><br /><Reveal>enough battery, as your</Reveal><br /><Reveal>browser will stay on throughout</Reveal><br /><Reveal>the experience.</Reveal></p>
           <p><Reveal>You’ll have the option to step</Reveal><br /><Reveal>off the bus and explore on foot</Reveal><br /><Reveal>during part of the tour.</Reveal></p>
           <p className="phone-iphone-note"><Reveal>For iPhone users, keep your</Reveal><br /><Reveal>screen on and unlocked</Reveal><br /><Reveal>throughout the journey to avoid</Reveal><br /><Reveal>interrupting the experience.</Reveal></p>
-          <button ref={helpRef} type="button" className="phone-help-link" onClick={event => { event.stopPropagation(); setShowPhoneHelp(true); }}><span aria-hidden="true" className="phone-info-icon">i</span><span>How to reduce interruptions</span></button>
+          <button ref={helpRef} type="button" className="phone-help-link" onClick={event => { event.stopPropagation(); setShowPhoneHelp(true); }}><span aria-hidden="true" className="phone-info-icon" /><span>How to reduce interruptions</span></button>
         </div>
         </>}
         <button ref={continueRef} type="button" className="journey-continue" onClick={event => { event.stopPropagation(); advance(); }}>Tap anywhere to continue...</button>
@@ -150,3 +150,4 @@ export default function JourneyOpening({ settings, onContinue }: { settings: Fie
     </div>
   );
 }
+

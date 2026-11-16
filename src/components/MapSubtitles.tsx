@@ -66,9 +66,10 @@ export default function MapSubtitles({ audioRef, trackId, audioUrl, onSubtitlesS
   return <div className={`map-subtitles${onOpenDirections || leadingContent ? ' with-directions' : ''}${belowBoardingHeading ? ' below-boarding-heading' : ''}`} aria-label={speaker ? `Subtitles: ${speaker.name}` : 'Direction guides'}
     style={{ '--speaker-light': speaker?.colorLight, '--speaker-dark': speaker?.colorDark } as CSSProperties}>
     {leadingContent && <div className="walking-stop-prompt">{leadingContent}</div>}
-    {onOpenDirections && <div className="walk-end-directions"><p>You’ve reached the end of the walk.<br />Follow the directions to the bus stop<br />and board the next bus 166.</p><button type="button" className="direction-guide-link" onClick={onOpenDirections}><span className="phone-info-icon" aria-hidden="true">i</span><span>View direction guides</span></button></div>}
+    {onOpenDirections && <div className="walk-end-directions"><p>You’ve reached the end of the walk.<br />Follow the directions to the bus stop<br />and board the next bus 166.</p><button type="button" className="direction-guide-link" onClick={onOpenDirections}><span className="phone-info-icon" aria-hidden="true" /><span>View direction guides</span></button></div>}
     {speaker && visibleCue && <div className="subtitle-cue-block"><div className="subtitle-speaker">{speaker.name}</div>
     <p>{visibleCue.lines.map((line, index) => <span key={index}>{line}</span>)}</p></div>}
   </div>;
 }
+
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Bug, Pause, Play, RotateCcw, SkipBack, SkipForward, X } from 'lucide-react';
+import { Bug, Pause, Play, RotateCcw, SkipBack, SkipForward, Volume2, X } from 'lucide-react';
 import type { LocationPin } from '../config';
 import { subtitleTracks } from './subtitles';
 import { DEFAULT_FADE, fadeGain, type FadeSettings } from './audioFade';
@@ -94,7 +94,7 @@ export default function DebugAudioPanel(props: Props) {
     <button type="button" aria-label="Crossfade debug settings" title="Crossfade settings" aria-expanded={fadeExpanded} aria-controls="crossfade-debug-panel"
       className="debug-audio-launcher flex flex-col items-center justify-center rounded-xl border backdrop-blur-md"
       onClick={() => { setFadeExpanded(!fadeExpanded); setExpanded(false); }}>
-      <span aria-hidden="true">↗</span><span className="text-[8px] font-bold leading-3">FADE</span>
+      <Volume2 size={17} aria-hidden="true" /><span className="text-[8px] font-bold leading-3">FADE</span>
     </button>
     {fadeExpanded && <section id="crossfade-debug-panel" aria-label="Crossfade settings and preview" className="map-debug-popover debug-audio-panel crossfade-debug-panel"
       style={{ maxHeight: `max(80px, calc(100dvh - ${props.audioClearance}px - 90px - env(safe-area-inset-top)))` }}>
@@ -141,3 +141,4 @@ export default function DebugAudioPanel(props: Props) {
     </section>}
   </aside></>;
 }
+

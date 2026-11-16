@@ -285,6 +285,7 @@ export default function MapPage() {
   const pavilionFadeRef = useRef<number | null>(null);
   const [showPavilionGuide, setShowPavilionGuide] = useState(false);
   const [showLandmarks, setShowLandmarks] = useState(false);
+  const [showParkRoute, setShowParkRoute] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [showOpening, setShowOpening] = useState(true);
@@ -436,6 +437,7 @@ export default function MapPage() {
     setPavilionContinued(false);
     setShowPavilionGuide(false);
     setShowLandmarks(false);
+    setShowParkRoute(false);
     if (pin.id === pavilionContinuedRef.current) pavilionContinuedRef.current = null;
 
     const request = ++playbackRequestRef.current;
@@ -672,7 +674,7 @@ export default function MapPage() {
   };
 
   const continuePavilionWalk = () => {
-    if (!activePin || !['pin-11', 'pin-11b', 'pin-12'].includes(activePin.id) || pavilionContinuedRef.current === activePin.id) return;
+    if (!activePin || !['pin-10', 'pin-11', 'pin-11b', 'pin-12'].includes(activePin.id) || pavilionContinuedRef.current === activePin.id) return;
     pavilionContinuedRef.current = activePin.id;
     setPavilionContinued(true);
     const audio = audioRef.current;
@@ -694,7 +696,7 @@ export default function MapPage() {
 
   const goBackToPavilion = () => {
     const pin = pins.find(candidate => candidate.id === activePin?.id);
-    if (!pin || !['pin-11', 'pin-11b', 'pin-12'].includes(pin.id)) return;
+    if (!pin || !['pin-10', 'pin-11', 'pin-11b', 'pin-12'].includes(pin.id)) return;
     playbackField.prepare();
     void playPinAudio(pin);
   };
@@ -843,11 +845,11 @@ export default function MapPage() {
     setWalking(false);
   }, [walking, userPos, pins, debugPlayback, activePin, leavingBus, arScene, handScene]);
 
-  const pavilionPrompt = !showOpening && ['pin-11', 'pin-11b', 'pin-12'].includes(activePin?.id ?? '') ? (<motion.section className="pavilion-instructions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .65 }}>
+  const pavilionPrompt = !showOpening && ['pin-10', 'pin-11', 'pin-11b', 'pin-12'].includes(activePin?.id ?? '') ? (<motion.section className="pavilion-instructions" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .65 }}>
           <h1>{pavilionContinued ? 'Ready for the next stretch?' : 'Stay here for this story.'}</h1>
-          <p>{pavilionContinued ? (activePin?.id === 'pin-12' ? 'Follow the directions to the Amenities Centre. Begin when you are ready to move.' : 'Follow the path along the reservoir to find the next pavilion. Begin when you are ready to move.') : 'Find a comfortable place at the pavilion. This is a listening stop.'}</p>
-          {activePin?.id === 'pin-12' && !pavilionContinued && <button type="button" className="direction-guide-link" onClick={() => setShowLandmarks(true)}><span className="phone-info-icon" aria-hidden="true">i</span><span>View landmarks</span></button>}
-          {pavilionContinued ? <button type="button" className="direction-guide-link" onClick={() => setShowPavilionGuide(true)}><span className="phone-info-icon" aria-hidden="true">i</span><span>View direction guides</span></button> : null}
+          <p>{pavilionContinued ? (activePin?.id === 'pin-10' ? 'Walk towards the reservoir and look for the first pavilion. Begin when you are ready to move.' : activePin?.id === 'pin-12' ? 'Follow the directions to the Amenities Centre. Begin when you are ready to move.' : 'Follow the path along the reservoir to find the next pavilion. Begin when you are ready to move.') : activePin?.id === 'pin-10' ? 'Stand beside the fig tree and listen to this story.' : 'Find a comfortable place at the pavilion. This is a listening stop.'}</p>
+          {activePin?.id === 'pin-12' && !pavilionContinued && <button type="button" className="direction-guide-link" onClick={() => setShowLandmarks(true)}><span className="phone-info-icon" aria-hidden="true" /><span>View landmarks</span></button>}
+          {pavilionContinued ? <button type="button" className="direction-guide-link" onClick={() => setShowPavilionGuide(true)}><span className="phone-info-icon" aria-hidden="true" /><span>View direction guides</span></button> : null}
         </motion.section>) : null;
   return (
     <div inert={!!arScene || !!handScene} className={`relative w-full h-full bg-zinc-950${darkMap ? " dark-map" : ""}${showOpening ? " opening-active" : ""}`}>
@@ -985,7 +987,7 @@ export default function MapPage() {
             <p>Go down the stairs</p>
             <p>Through the tunnel</p>
             <p>Towards the park</p>
-            <button type="button" className="phone-help-link" disabled title="Route photos coming soon"><span aria-hidden="true" className="phone-info-icon">i</span><span>Show me photos</span></button>
+            <button type="button" className="phone-help-link" onClick={() => setShowParkRoute(true)}><span aria-hidden="true" className="phone-info-icon" /><span>Show me photos</span></button>
           </div>
         </motion.section>}
       </AnimatePresence>
@@ -999,8 +1001,9 @@ export default function MapPage() {
         trackId={activePin?.audioUrl === BOARDING_AUDIO_URL ? 'boarding' : activePin?.id}
         audioUrl={activePin?.audioUrl} />}
       <AnimatePresence>{showDirectionGuides && <DirectionGuides onClose={() => setShowDirectionGuides(false)} />}</AnimatePresence>
-      <AnimatePresence>{showPavilionGuide && <DirectionGuides singlePavilion={activePin?.id !== 'pin-12'} variant={activePin?.id === 'pin-12' ? 'amenities' : 'bus'} pavilionNumber={activePin?.id === 'pin-11b' ? 3 : 2} onClose={() => setShowPavilionGuide(false)} />}</AnimatePresence>
+      <AnimatePresence>{showPavilionGuide && <DirectionGuides singlePavilion={activePin?.id !== 'pin-12' && activePin?.id !== 'pin-10'} variant={activePin?.id === 'pin-10' ? 'fig-route' : activePin?.id === 'pin-12' ? 'amenities' : 'bus'} pavilionNumber={activePin?.id === 'pin-11b' ? 3 : 2} onClose={() => setShowPavilionGuide(false)} />}</AnimatePresence>
       <AnimatePresence>{showLandmarks && <DirectionGuides variant="landmarks" onClose={() => setShowLandmarks(false)} />}</AnimatePresence>
+      <AnimatePresence>{showParkRoute && <DirectionGuides variant="park-route" onClose={() => setShowParkRoute(false)} />}</AnimatePresence>
       {(activePin || canLeaveBus) && <div className="audio-bottom-wash" aria-hidden="true" />}
       <AnimatePresence>
         {(activePin || canLeaveBus) && (
@@ -1015,7 +1018,7 @@ export default function MapPage() {
               </div>}
             {canBoardBus &&
               <button type="button" className="journey-ar-launch" onClick={boardBus}>I'm on the bus</button>}
-            <AnimatePresence mode="wait">{(activePin?.id === 'pin-11' || activePin?.id === 'pin-11b' || activePin?.id === 'pin-12') && <motion.button key={pavilionContinued ? 'pavilion-back' : 'pavilion-continue'} type="button" className="journey-ar-launch" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .4 }} onClick={pavilionContinued ? goBackToPavilion : continuePavilionWalk}>{pavilionContinued ? 'Go back' : activePin?.id === 'pin-12' ? 'Continue walking – end of walk' : `Continue walking – start part ${activePin?.id === 'pin-11b' ? 3 : 2}`}</motion.button>}</AnimatePresence>
+            <AnimatePresence mode="wait">{(activePin?.id === 'pin-10' || activePin?.id === 'pin-11' || activePin?.id === 'pin-11b' || activePin?.id === 'pin-12') && <motion.button key={pavilionContinued ? 'pavilion-back' : 'pavilion-continue'} type="button" className="journey-ar-launch" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: .4 }} onClick={pavilionContinued ? goBackToPavilion : continuePavilionWalk}>{pavilionContinued ? 'Go back' : activePin?.id === 'pin-10' ? 'Continue walking' : activePin?.id === 'pin-12' ? 'Continue walking – end of walk' : `Continue walking – start part ${activePin?.id === 'pin-11b' ? 3 : 2}`}</motion.button>}</AnimatePresence>
             {leavingBus && <p role="status" className="mb-2 text-xs">Switching to the walking route…</p>}
             {debugPlayback && <p className="debug-audio-status mb-2 text-xs font-bold">DEBUG AUDIO PREVIEW - GPS triggers paused</p>}
             <h2 className="mb-4 truncate font-mono text-sm font-normal tracking-wide" title={activePin?.name}>{activePin?.name ?? 'Optional MacRitchie walk'}</h2>
@@ -1073,5 +1076,7 @@ export default function MapPage() {
     </div>
   );
 }
+
+
 
 
