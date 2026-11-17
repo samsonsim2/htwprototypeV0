@@ -1,5 +1,5 @@
 export type FadeSettings = { seconds: number; curve: 'smooth' | 'linear' | 'exponential'; shape: number };
-export const DEFAULT_FADE: FadeSettings = { seconds: 18, curve: 'exponential', shape: 1 };
+export const DEFAULT_FADE: FadeSettings = { seconds: 12, curve: 'exponential', shape: 1 };
 export function fadeGain(progress: number, settings: FadeSettings) {
   const t = Math.max(0, Math.min(1, progress));
   const shaped = t ** settings.shape;
