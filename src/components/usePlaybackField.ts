@@ -9,6 +9,33 @@ export default function usePlaybackField(audio: { current: HTMLAudioElement | nu
     frequencies: Uint8Array<ArrayBuffer>; waveform: Uint8Array<ArrayBuffer>;
   } | null>(null);
 
+  const sources = useRef(new WeakMap<HTMLAudioElement, MediaElementAudioSourceNode>());
+  const gains = useRef(new WeakMap<HTMLAudioElement, GainNode>());
+  const setVolume = useCallback((element: HTMLAudioElement, value: number) => {
+    const gain = gains.current.get(element);
+    if (gain) gain.gain.value = value;
+    else element.volume = value;
+  }, []);
+  const connectFadeAudio = useCallback((element: HTMLAudioElement) => {
+    const current = graph.current;
+    if (!current || sources.current.has(element)) return;
+    const source = current.context.createMediaElementSource(element);
+    const gain = current.context.createGain();
+    source.connect(gain);
+    gain.connect(current.context.destination);
+    gains.current.set(element, gain);
+    sources.current.set(element, source);
+  }, []);
+
+  const activate = useCallback((element: HTMLAudioElement) => {
+    const current = graph.current;
+    const source = sources.current.get(element);
+    if (!current || !source || source === current.source) return;
+    current.source.disconnect(current.analyser);
+    source.connect(current.analyser);
+    current.source = source;
+  }, []);
+
   const prepare = useCallback(() => {
     if (!audio.current) return;
     try {
@@ -19,7 +46,11 @@ export default function usePlaybackField(audio: { current: HTMLAudioElement | nu
         analyser.smoothingTimeConstant = 0.8;
         const source = context.createMediaElementSource(audio.current);
         // Direct output preserves volume; analyser is only a monitoring branch.
-        source.connect(context.destination);
+        const gain = context.createGain();
+        source.connect(gain);
+        gain.connect(context.destination);
+        gains.current.set(audio.current, gain);
+        sources.current.set(audio.current, source);
         source.connect(analyser);
         graph.current = { context, analyser, source,
           frequencies: new Uint8Array(analyser.frequencyBinCount), waveform: new Uint8Array(analyser.fftSize) };
@@ -53,5 +84,5 @@ export default function usePlaybackField(audio: { current: HTMLAudioElement | nu
       graph.current = null;
     }
   }, []);
-  return { prepare, sample };
+  return { prepare, sample, setVolume, connectFadeAudio, activate };
 }

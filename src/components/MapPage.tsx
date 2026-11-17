@@ -347,7 +347,11 @@ export default function MapPage() {
   const [audioError, setAudioError] = useState<string | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const firstAudioRef = useRef<HTMLAudioElement | null>(null);
+  const secondAudioRef = useRef<HTMLAudioElement | null>(null);
+  useEffect(() => { audioRef.current = firstAudioRef.current; }, []);
   const playbackField = usePlaybackField(audioRef);
+  const pendingAudioRef = useRef<HTMLAudioElement | null>(null);
   const fadingAudiosRef = useRef<HTMLAudioElement[]>([]);
   const fadeIntervalsRef = useRef<number[]>([]);
   const fadeCompletionsRef = useRef(new Map<number, () => void>());
@@ -360,7 +364,7 @@ export default function MapPage() {
 
     const intervalId = window.setInterval(() => {
       const progress = Math.min(1, (performance.now() - startedAt) / (settings.seconds * 1000));
-      audioEl.volume = startVolume * (1 - fadeGain(progress, settings));
+      playbackField.setVolume(audioEl, startVolume * (1 - fadeGain(progress, settings)));
 
       if (progress >= 1) {
         window.clearInterval(intervalId);
@@ -405,6 +409,8 @@ export default function MapPage() {
     const request = ++playbackRequestRef.current;
     if (switchTimeoutRef.current) window.clearTimeout(switchTimeoutRef.current);
     switchTimeoutRef.current = null;
+    pendingAudioRef.current?.pause();
+    pendingAudioRef.current = null;
     fadeIntervalsRef.current.forEach(id => window.clearInterval(id));
     fadeIntervalsRef.current = [];
     fadeCompletionsRef.current.forEach(resolve => resolve());
@@ -457,7 +463,7 @@ export default function MapPage() {
     }
 
     audioRef.current.src = pin.audioUrl;
-    audioRef.current.volume = 1;
+    playbackField.setVolume(audioRef.current, 1);
     audioRef.current.currentTime = 0;
 
     try {
@@ -482,123 +488,73 @@ export default function MapPage() {
     isSwitchingRef.current = true;
     setAudioError(null);
 
-    const mainAudio = audioRef.current;
+    const outgoing = audioRef.current;
+    const incoming = outgoing === firstAudioRef.current ? secondAudioRef.current : firstAudioRef.current;
     const settings = { ...fadeSettings };
-    let fadingOut: HTMLAudioElement | null = null;
-    let rampStarted = false;
-
+    let completed = false;
+    let loadTimeout: number | undefined;
     try {
-      const hasCurrentAudio = !!mainAudio.src && !mainAudio.paused;
-
-      if (hasCurrentAudio) {
-        const currentSrc = mainAudio.currentSrc || mainAudio.src;
-        const currentTime = mainAudio.currentTime || 0;
-        const currentVolume = mainAudio.volume;
-
-        const outgoingAudio = new Audio();
-        outgoingAudio.src = currentSrc;
-        outgoingAudio.preload = 'auto';
-        outgoingAudio.volume = currentVolume;
-
-        const startFadeClone = async () => {
-          if (request !== playbackRequestRef.current) return;
-          try {
-            const safeTime = Number.isFinite(currentTime) ? currentTime : 0;
-            outgoingAudio.currentTime = safeTime;
-
-            await outgoingAudio.play();
-            if (request !== playbackRequestRef.current) {
-              outgoingAudio.pause();
-              return;
-            }
-
-            fadingAudiosRef.current.push(outgoingAudio);
-            fadingOut = outgoingAudio;
-
-            mainAudio.pause();
-            mainAudio.currentTime = 0;
-            mainAudio.volume = 1;
-          } catch (err) {
-            if (request !== playbackRequestRef.current) return;
-            console.warn('Outgoing fade audio failed to play:', err);
-
-            mainAudio.pause();
-            mainAudio.currentTime = 0;
-            mainAudio.volume = 1;
-          }
-        };
-
-        if (outgoingAudio.readyState >= 1) {
-          await startFadeClone();
-        } else {
-          await new Promise<void>((resolve) => {
-            const cleanupListeners = () => {
-              outgoingAudio.removeEventListener('loadedmetadata', onLoadedMetadata);
-              outgoingAudio.removeEventListener('error', onError);
-            };
-
-            const onLoadedMetadata = async () => {
-              cleanupListeners();
-              await startFadeClone();
-              resolve();
-            };
-
-            const onError = () => {
-              cleanupListeners();
-              if (request !== playbackRequestRef.current) { resolve(); return; }
-              console.warn('Outgoing audio metadata failed to load');
-
-              mainAudio.pause();
-              mainAudio.currentTime = 0;
-              mainAudio.volume = 1;
-              resolve();
-            };
-
-            outgoingAudio.addEventListener('loadedmetadata', onLoadedMetadata, { once: true });
-            outgoingAudio.addEventListener('error', onError, { once: true });
-          });
-        }
+      if (!incoming) return;
+      playbackField.connectFadeAudio(incoming);
+      incoming.src = nextPin.audioUrl;
+      incoming.currentTime = 0;
+      playbackField.setVolume(incoming, 1);
+      // Keep the existing player audible throughout loading and buffering.
+      pendingAudioRef.current = incoming;
+      await Promise.race([
+        incoming.play(),
+        new Promise<never>((_, reject) => {
+          loadTimeout = window.setTimeout(() => reject(new Error('Incoming audio timed out')), 15000);
+        }),
+      ]);
+      window.clearTimeout(loadTimeout);
+      if (pendingAudioRef.current === incoming) pendingAudioRef.current = null;
+      if (request !== playbackRequestRef.current) {
+        incoming.pause();
+        return;
       }
-
-      if (request !== playbackRequestRef.current) return;
-      mainAudio.src = nextPin.audioUrl;
-      mainAudio.currentTime = 0;
-      mainAudio.volume = fadingOut ? 0 : 1;
-
+      audioRef.current = incoming;
+      playbackField.activate(incoming);
       setActivePin(nextPin);
-
-      await mainAudio.play();
-      if (request === playbackRequestRef.current && fadingOut) {
-        rampStarted = true;
-        void fadeOutAndStopAudio(fadingOut, settings);
-        const startedAt = performance.now();
+      setElapsed(incoming.currentTime);
+      setDuration(Number.isFinite(incoming.duration) ? incoming.duration : 0);
+      setIsPlaying(true);
+      if (!outgoing.paused && !outgoing.ended) {
+        fadingAudiosRef.current.push(outgoing);
         setFadeProgress(0);
+        const startedAt = performance.now();
         const intervalId = window.setInterval(() => {
-          const progress = Math.min(1, (performance.now() - startedAt) / (settings.seconds * 1000));
           if (request === playbackRequestRef.current) {
-            mainAudio.volume = fadeGain(progress, settings);
-            setFadeProgress(progress);
-          }
-          if (progress >= 1 || request !== playbackRequestRef.current) {
-            window.clearInterval(intervalId);
-            fadeIntervalsRef.current = fadeIntervalsRef.current.filter(id => id !== intervalId);
-            setFadeProgress(null);
-            if (request === playbackRequestRef.current) isSwitchingRef.current = false;
+            setFadeProgress(Math.min(1, (performance.now() - startedAt) / (settings.seconds * 1000)));
           }
         }, 30);
         fadeIntervalsRef.current.push(intervalId);
+        try {
+          await fadeOutAndStopAudio(outgoing, settings);
+        } finally {
+          window.clearInterval(intervalId);
+          fadeIntervalsRef.current = fadeIntervalsRef.current.filter(id => id !== intervalId);
+        }
+      } else {
+        outgoing.pause();
       }
-      if (request === playbackRequestRef.current) setIsPlaying(true);
+      completed = true;
     } catch (err) {
       if (request !== playbackRequestRef.current) return;
-      console.warn('Failed to switch to new pin audio:', err);
-      if (fadingOut) void fadeOutAndStopAudio(fadingOut, settings);
-      mainAudio.volume = 1;
-      setIsPlaying(false);
-      setAudioError('Tap play to start audio.');
-      setActivePin(nextPin);
+      incoming?.pause();
+      console.warn('Failed to start incoming audio:', err);
+      // Preserve the current recording if the incoming recording cannot start.
+      setIsPlaying(!outgoing.paused);
+      setAudioError('Could not start the next track. Please try again.');
     } finally {
-      if (request === playbackRequestRef.current && !rampStarted) isSwitchingRef.current = false;
+      window.clearTimeout(loadTimeout);
+      if (pendingAudioRef.current === incoming) pendingAudioRef.current = null;
+      if (request === playbackRequestRef.current) {
+        isSwitchingRef.current = false;
+        setFadeProgress(null);
+      } else if (!completed && incoming && audioRef.current !== incoming) {
+        incoming.pause();
+      }
     }
   };
 
@@ -631,6 +587,8 @@ export default function MapPage() {
   useEffect(() => {
     return () => {
       ++playbackRequestRef.current;
+      pendingAudioRef.current?.pause();
+      pendingAudioRef.current = null;
       if (pavilionFadeRef.current !== null) window.clearInterval(pavilionFadeRef.current);
       if (switchTimeoutRef.current) {
         window.clearTimeout(switchTimeoutRef.current);
@@ -665,6 +623,8 @@ export default function MapPage() {
     setLeavingBus(false);
     if (switchTimeoutRef.current) window.clearTimeout(switchTimeoutRef.current);
     switchTimeoutRef.current = null;
+    pendingAudioRef.current?.pause();
+    pendingAudioRef.current = null;
     fadeIntervalsRef.current.forEach(id => window.clearInterval(id));
     fadeIntervalsRef.current = [];
     fadeCompletionsRef.current.forEach(resolve => resolve());
@@ -697,12 +657,12 @@ export default function MapPage() {
     const startedAt = performance.now();
     pavilionFadeRef.current = window.setInterval(() => {
       const progress = Math.min(1, (performance.now() - startedAt) / 1200);
-      audio.volume = startVolume * (1 - progress);
+      playbackField.setVolume(audio, startVolume * (1 - progress));
       if (progress === 1) {
         window.clearInterval(pavilionFadeRef.current!);
         pavilionFadeRef.current = null;
         audio.pause();
-        audio.volume = 1;
+        playbackField.setVolume(audio, 1);
         setIsPlaying(false);
       }
     }, 30);
@@ -1078,20 +1038,22 @@ export default function MapPage() {
             playing={isPlaying} onToggleAudio={toggleAudio} onClose={closeHandAR} onRetry={retryHandAR} />
         </React.Suspense>
       </ARLoadBoundary>}
-      <audio
-        ref={audioRef}
-        onEnded={() => setIsPlaying(false)}
-        onLoadStart={() => { setElapsed(0); setDuration(0); }}
-        onLoadedMetadata={e => setDuration(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0)}
-        onDurationChange={e => setDuration(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0)}
-        onTimeUpdate={e => setElapsed(e.currentTarget.currentTime)}
-        onError={(e) => {
-          console.error('Audio playback error:', e);
+      {[firstAudioRef, secondAudioRef].map((playerRef, index) => <audio
+        key={index}
+        ref={playerRef}
+        preload="auto"
+        onEnded={e => { if (e.currentTarget === audioRef.current) setIsPlaying(false); }}
+        onLoadStart={e => { if (e.currentTarget === audioRef.current) { setElapsed(0); setDuration(0); } }}
+        onLoadedMetadata={e => { if (e.currentTarget === audioRef.current) setDuration(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0); }}
+        onDurationChange={e => { if (e.currentTarget === audioRef.current) setDuration(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0); }}
+        onTimeUpdate={e => { if (e.currentTarget === audioRef.current) setElapsed(e.currentTarget.currentTime); }}
+        onError={e => {
+          if (e.currentTarget !== audioRef.current) return;
           setIsPlaying(false);
-          setAudioError('Failed to load audio file. Please check if the file exists.');
+          setAudioError('Failed to load audio file. Please try again.');
         }}
         className="hidden"
-      />
+      />)}
 
       {showOpening && <JourneyOpening settings={fieldSettings} onContinue={handleStart} />}
     </div>

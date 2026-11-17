@@ -1,0 +1,1 @@
+function s(e,r,a){const o=t=>{!t.composedPath().includes(r)&&!r.contains(t.target)||t.type==="pointerdown"&&t.button!==0||(t.preventDefault(),t.stopPropagation(),a())},n=["beforexrselect","pointerdown","touchstart","click"];return n.forEach(t=>e.addEventListener(t,o,{capture:!0,passive:!1})),()=>n.forEach(t=>e.removeEventListener(t,o,{capture:!0}))}export{s as b};

@@ -106,7 +106,7 @@ export default function DebugAudioPanel(props: Props) {
           </select>
         </label>
         <button type="button" className="debug-audio-action" disabled={!pin} onClick={() => props.onPreview(pin.id)}>Play starting track</button>
-        <p>Settings apply to location changes and the next preview. Saved on this device.</p>
+        <p>Incoming audio starts at full volume; only the outgoing track fades out. Settings are saved on this device.</p>
         <label>Duration: {props.fadeSettings.seconds}s
           <input aria-label="Crossfade duration" type="range" min="2" max="40" step="1" disabled={props.fadeProgress !== null}
             value={props.fadeSettings.seconds} onChange={event => props.onFadeSettings({ ...props.fadeSettings, seconds: Number(event.target.value) })} />
@@ -126,7 +126,7 @@ export default function DebugAudioPanel(props: Props) {
           {[false, true].map(incoming => <polyline key={String(incoming)} fill="none" stroke={incoming ? '#86efac' : '#fdba74'} strokeWidth="2"
             points={Array.from({ length: 101 }, (_, i) => {
               const gain = fadeGain(i / 100, props.fadeSettings);
-              return `${10 + i * 2.6},${95 - (incoming ? gain : 1 - gain) * 85}`;
+              return `${10 + i * 2.6},${95 - (incoming ? 1 : 1 - gain) * 85}`;
             }).join(' ')} />)}
           {props.fadeProgress !== null && <line x1={10 + props.fadeProgress * 260} x2={10 + props.fadeProgress * 260} y1="5" y2="95" stroke="white" strokeDasharray="3 3" />}
           <text x="10" y="108" fill="white" fontSize="9">0s</text><text x="250" y="108" fill="white" fontSize="9">{props.fadeSettings.seconds}s</text>

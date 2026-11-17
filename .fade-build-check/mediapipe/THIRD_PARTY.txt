@@ -1,0 +1,12 @@
+MediaPipe Tasks Vision 1.1.1 (Google)
+https://github.com/google-ai-edge/mediapipe
+Runtime files copied from the npm package @mediapipe/tasks-vision@1.1.1.
+License: Apache License 2.0 (see LICENSE).
+
+Hand Landmarker model, float16, version 1 (Google)
+https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task
+https://developers.google.com/edge/mediapipe/solutions/vision/hand_landmarker
+Model downloaded from Google's official MediaPipe model repository.
+
+These files are loaded only when the Blk 209 hand filter is opened.
+Camera frames are processed in the browser worker and are not uploaded.
